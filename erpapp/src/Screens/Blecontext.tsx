@@ -5,7 +5,7 @@ import React, {
   useEffect,
   ReactNode,
 } from 'react';
-import {BleManager, Device, Subscription} from 'react-native-ble-plx';
+import { BleManager, Device, Subscription } from 'react-native-ble-plx';
 import {
   PermissionsAndroid,
   Platform,
@@ -14,7 +14,7 @@ import {
   Linking,
 } from 'react-native';
 import Geolocation from 'react-native-geolocation-service';
-import {Buffer} from 'buffer';
+import { Buffer } from 'buffer';
 
 // Interface for BLE context
 interface BLEContextProps {
@@ -47,7 +47,7 @@ interface BLEProviderProps {
 // Create BLE context
 const BLEContext = createContext<BLEContextProps | undefined>(undefined);
 
-export const BLEProvider: React.FC<BLEProviderProps> = ({children}) => {
+export const BLEProvider: React.FC<BLEProviderProps> = ({ children }) => {
   const [bleManager] = useState(new BleManager());
   const [devices, setDevices] = useState<Device[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
@@ -64,10 +64,10 @@ export const BLEProvider: React.FC<BLEProviderProps> = ({children}) => {
         const permissions =
           Platform.Version >= 31
             ? [
-                PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
-                PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
-                PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-              ]
+              PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+              PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+              PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            ]
             : [PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION];
 
         const granted = await PermissionsAndroid.requestMultiple(permissions);
@@ -127,7 +127,7 @@ export const BLEProvider: React.FC<BLEProviderProps> = ({children}) => {
         console.log('Scan already in progress');
         return;
       }
-  
+
       const granted = await requestPermissions();
       if (!granted) {
         Alert.alert(
@@ -136,9 +136,9 @@ export const BLEProvider: React.FC<BLEProviderProps> = ({children}) => {
         );
         return;
       }
-  
+
       let bluetoothEnabled = await checkBluetoothState(bleManager);
-      console.log({bluetoothEnabled})
+      console.log({ bluetoothEnabled })
       if (!bluetoothEnabled) {
         await new Promise<void>(resolve => {
           Alert.alert(
@@ -169,7 +169,7 @@ export const BLEProvider: React.FC<BLEProviderProps> = ({children}) => {
         bluetoothEnabled = await checkBluetoothState(bleManager);
         if (!bluetoothEnabled) return;
       }
-  
+
       if (Platform.OS === 'android') {
         const enabled = await isLocationEnabled();
         if (!enabled) {
@@ -192,13 +192,13 @@ export const BLEProvider: React.FC<BLEProviderProps> = ({children}) => {
           return;
         }
       }
-  
+
       bleManager.stopDeviceScan();
       setDevices([]);
       setIsScanning(true);
-  
+
       const serviceUUID = '52454152-4C59-5445-4348-5056544C5444'.toLowerCase();
-  
+
       bleManager.startDeviceScan(
         [serviceUUID],
         { allowDuplicates: false },
@@ -208,7 +208,7 @@ export const BLEProvider: React.FC<BLEProviderProps> = ({children}) => {
             setIsScanning(false);
             return;
           }
-  
+
           if (device?.name) {
             setDevices(prevDevices => {
               const exists = prevDevices.some(d => d.id === device.id);
@@ -217,7 +217,7 @@ export const BLEProvider: React.FC<BLEProviderProps> = ({children}) => {
           }
         },
       );
-  
+
       setTimeout(() => {
         bleManager.stopDeviceScan();
         setIsScanning(false);
