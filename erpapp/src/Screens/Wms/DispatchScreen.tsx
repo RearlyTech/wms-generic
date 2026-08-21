@@ -24,20 +24,90 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
   const { rfid, connectedDevice } = useBLE();
 
   const [palletRfid, setPalletRfid] = useState('');
+  const [itemRfid, setItemRfid] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [markedItems, setMarkedItems] = useState<any[]>([]);
+  const [fetchingMarked, setFetchingMarked] = useState(false);
+  const [isValidMatch, setIsValidMatch] = useState(false);
+  const [validating, setValidating] = useState(false);
 
   useEffect(() => {
     if (isFocused && rfid) {
-      setPalletRfid(rfid);
+      if (!palletRfid) {
+        setPalletRfid(rfid);
+      } else if (!itemRfid && rfid !== palletRfid) {
+        setItemRfid(rfid);
+      }
       setSuccessMessage(null);
+    }
+    
+    if (isFocused) {
+      fetchMarkedItems();
     }
   }, [rfid, isFocused]);
 
+  useEffect(() => {
+    const validateScans = async () => {
+      if (!palletRfid.trim() || !itemRfid.trim()) {
+        setIsValidMatch(false);
+        return;
+      }
+      setValidating(true);
+      try {
+        const url = `http://192.168.29.113:8000/wms/validate-dispatch?pallet_rfid=${encodeURIComponent(palletRfid.trim())}&item_rfid=${encodeURIComponent(itemRfid.trim())}`;
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          setIsValidMatch(data.valid === true);
+        } else {
+          setIsValidMatch(false);
+        }
+      } catch (err) {
+        setIsValidMatch(false);
+      } finally {
+        setValidating(false);
+      }
+    };
+
+    // Small timeout to prevent spamming if typing manually
+    const timeoutId = setTimeout(() => validateScans(), 300);
+    return () => clearTimeout(timeoutId);
+  }, [palletRfid, itemRfid]);
+
+  const fetchMarkedItems = async () => {
+    setFetchingMarked(true);
+    try {
+      const response = await fetch('http://192.168.29.113:8000/wms/marked-for-dispatch');
+      if (response.ok) {
+        const data = await response.json();
+        setMarkedItems(data || []);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch marked items', err);
+    } finally {
+      setFetchingMarked(false);
+    }
+  };
+
   const handleDispatch = async () => {
-    if (!palletRfid.trim()) {
-      Alert.alert('Error', 'Please scan or enter an RFID tag first.');
+    if (!palletRfid.trim() || !itemRfid.trim()) {
+      Alert.alert('Error', 'Please scan both the Bin/Pallet RFID and the Item RFID.');
       return;
+    }
+    
+    if (!isValidMatch) {
+      Alert.alert('Error', 'Scanned items do not match any marked-for-dispatch bin/item.');
+      return;
+    }
+    
+    // Check if there are any marked items
+    if (markedItems.length > 0) {
+      // Find if the scanned tag matches any marked item's locations
+      // Note: In reality we'd resolve the tag to a bin first using API, 
+      // but for mobile-side validation, we'll allow the backend to reject it too.
+      // We will perform a basic check here or let the backend reject.
+      // Let's rely on the backend to actually dispatch, but we can do a local warning.
     }
 
     setLoading(true);
@@ -49,20 +119,25 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pallet_rfid: palletRfid.trim(),
+          item_rfid: itemRfid.trim(),
         }),
       });
 
       if (response.ok) {
-        setSuccessMessage(`Successfully dispatched RFID [${palletRfid}]! Stock consumed completely.`);
+        setSuccessMessage(`Successfully dispatched Item from Bin!`);
         setPalletRfid('');
+        setItemRfid('');
+        fetchMarkedItems(); // Refresh the list
       } else {
         const errJson = await response.json().catch(() => ({}));
         const errMsg = errJson.detail || 'Failed to dispatch';
         Alert.alert('ERPNext Error', errMsg);
       }
     } catch (err) {
-      setSuccessMessage(`[Simulated] Successfully dispatched RFID [${palletRfid}]! Stock consumed.`);
+      setSuccessMessage(`[Simulated] Successfully dispatched Item from Bin!`);
       setPalletRfid('');
+      setItemRfid('');
+      fetchMarkedItems(); // Refresh the list
     } finally {
       setLoading(false);
     }
@@ -98,13 +173,44 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
           </View>
         </View>
 
+        <View style={styles.queueContainer}>
+          <View style={styles.queueHeader}>
+            <Text style={styles.queueTitle}>Marked for Dispatch Queue</Text>
+            {fetchingMarked && <ActivityIndicator size="small" color="#5A80FD" />}
+          </View>
+          
+          {markedItems.length === 0 ? (
+            <Text style={styles.emptyQueueText}>
+              {fetchingMarked ? 'Loading queue...' : 'No items marked for dispatch.'}
+            </Text>
+          ) : (
+            markedItems.map((item, index) => (
+              <View key={index} style={styles.queueItemCard}>
+                <View style={styles.queueItemRow}>
+                  <Icon name="package" size={16} color="#5A80FD" style={{ marginRight: 6 }} />
+                  <Text style={styles.queueItemCode}>{item.item_code} - {item.batch_number}</Text>
+                </View>
+                {item.locations && item.locations.length > 0 ? (
+                  item.locations.map((loc: any, lidx: number) => (
+                    <Text key={lidx} style={styles.queueLocationText}>
+                      Bin: {loc.warehouse} (Qty: {loc.actual_qty})
+                    </Text>
+                  ))
+                ) : (
+                  <Text style={styles.queueLocationText}>No locations found</Text>
+                )}
+              </View>
+            ))
+          )}
+        </View>
+
         <View style={styles.card}>
-          <Text style={styles.label}>Scanned RFID Tag</Text>
+          <Text style={styles.label}>1. Scan Location (Bin/Pallet)</Text>
           <View style={styles.inputContainer}>
-            <Icon name="tag" size={18} color="#999" style={styles.inputIcon} />
+            <Icon name="map-pin" size={18} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Scan or enter RFID Tag..."
+              placeholder="Scan Bin/Pallet RFID..."
               value={palletRfid}
               onChangeText={setPalletRfid}
               placeholderTextColor="#999"
@@ -115,16 +221,35 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
               </TouchableOpacity>
             ) : null}
           </View>
+          
+          <Text style={styles.label}>2. Scan Item</Text>
+          <View style={styles.inputContainer}>
+            <Icon name="tag" size={18} color="#999" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Scan Item RFID..."
+              value={itemRfid}
+              onChangeText={setItemRfid}
+              placeholderTextColor="#999"
+            />
+            {itemRfid ? (
+              <TouchableOpacity onPress={() => setItemRfid('')}>
+                <Icon name="x" size={18} color="#999" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
           <TouchableOpacity
-            style={[styles.primaryButton, loading && styles.disabledButton]}
+            style={[styles.primaryButton, (loading || validating || !isValidMatch || !palletRfid || !itemRfid) && styles.disabledButton]}
             onPress={handleDispatch}
-            disabled={loading}
+            disabled={loading || validating || !isValidMatch || !palletRfid || !itemRfid}
           >
-            {loading ? (
+            {loading || validating ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.primaryButtonText}>Dispatch Item</Text>
+              <Text style={styles.primaryButtonText}>
+                {!isValidMatch && palletRfid && itemRfid ? "Mismatch - Cannot Dispatch" : "Dispatch Item"}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -274,6 +399,59 @@ const styles = StyleSheet.create({
     fontSize: wp(3.8),
     fontWeight: '600',
     flex: 1,
+  },
+  queueContainer: {
+    backgroundColor: '#fff',
+    borderRadius: wp(4),
+    padding: wp(4),
+    marginBottom: hp(2),
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  queueHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: hp(1.5),
+  },
+  queueTitle: {
+    fontSize: wp(4),
+    fontWeight: '700',
+    color: '#333',
+  },
+  emptyQueueText: {
+    fontSize: wp(3.5),
+    color: '#888',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: hp(2),
+  },
+  queueItemCard: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: wp(2),
+    padding: wp(3),
+    marginBottom: hp(1),
+  },
+  queueItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp(0.5),
+  },
+  queueItemCode: {
+    fontSize: wp(3.5),
+    fontWeight: '600',
+    color: '#444',
+  },
+  queueLocationText: {
+    fontSize: wp(3.2),
+    color: '#666',
+    marginLeft: wp(5.5),
+    marginTop: hp(0.2),
   },
 });
 

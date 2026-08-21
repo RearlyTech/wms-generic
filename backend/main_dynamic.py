@@ -1788,6 +1788,7 @@ class WmsExceptionSchema(BaseModel):
 
 class WmsDispatchSchema(BaseModel):
     pallet_rfid: str
+    item_rfid: str | None = None
     dock_id: str | None = None
 
 class WmsStockCountSchema(BaseModel):
@@ -2339,62 +2340,140 @@ def api_wms_exception(data: WmsExceptionSchema):
     )
     return {"message": "Success"}
 
+@app.get("/wms/validate-dispatch")
+def api_wms_validate_dispatch(pallet_rfid: str, item_rfid: str):
+    try:
+        warehouse_tag = resolve_warehouse_from_rfid(pallet_rfid)
+        if not exists("Warehouse", warehouse_tag):
+            return {"valid": False}
+            
+        item_code = resolve_item_from_rfid(item_rfid)
+        if not item_code:
+            return {"valid": False}
+            
+        # Verify stock exists in warehouse
+        r_bin = requests.get(
+            f"{ERP_URL}/api/resource/Bin",
+            headers=HEADERS,
+            params={"filters": json.dumps([["warehouse", "=", warehouse_tag], ["item_code", "=", item_code], ["actual_qty", ">", 0]]), "fields": '["actual_qty"]'}
+        )
+        if r_bin.status_code != 200 or not r_bin.json().get("data"):
+            return {"valid": False}
+            
+        # Verify item is marked for dispatch
+        dispatch_marked = requests.get(
+            f"{ERP_URL}/api/resource/Batch", 
+            headers=HEADERS, 
+            params={"filters": json.dumps([["item", "=", item_code], ["custom_marked_for_dispatch", "=", 1]]), "fields": '["name"]'}
+        )
+        if dispatch_marked.status_code != 200 or not dispatch_marked.json().get("data"):
+             return {"valid": False}
+             
+        return {"valid": True}
+    except Exception:
+        return {"valid": False}
+
+
+@app.get("/wms/marked-for-dispatch")
+def api_wms_marked_for_dispatch():
+    try:
+        # Fetch batches marked for dispatch
+        r = requests.get(
+            f"{ERP_URL}/api/resource/Batch",
+            headers=HEADERS,
+            params={
+                "filters": json.dumps([["custom_marked_for_dispatch", "=", 1], ["disabled", "=", 0]]),
+                "fields": '["name", "item", "item_name", "batch_qty", "expiry_date"]',
+                "limit_page_length": 500
+            }
+        )
+        if r.status_code != 200:
+            return []
+        
+        batches = r.json().get("data", [])
+        
+        # For each batch, find its locations
+        result = []
+        for b in batches:
+            r_bin = requests.get(
+                f"{ERP_URL}/api/resource/Bin",
+                headers=HEADERS,
+                params={
+                    "filters": json.dumps([["item_code", "=", b["item"]], ["actual_qty", ">", 0]]),
+                    "fields": '["warehouse", "actual_qty"]'
+                }
+            )
+            locations = []
+            if r_bin.status_code == 200:
+                locations = r_bin.json().get("data", [])
+            
+            result.append({
+                "batch_number": b["name"],
+                "item_code": b["item"],
+                "item_name": b.get("item_name", ""),
+                "batch_qty": b.get("batch_qty", 0),
+                "expiry_date": b.get("expiry_date", ""),
+                "locations": locations
+            })
+            
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/wms/dispatch")
 def api_wms_dispatch(data: WmsDispatchSchema):
     try:
         company = resolve_latest_doc("Company") or "Rearly Tech"
         company_abbr = get_company_abbr(company)
         
-        tag = resolve_warehouse_from_rfid(data.pallet_rfid)
-        is_warehouse = exists("Warehouse", tag)
+        warehouse_tag = resolve_warehouse_from_rfid(data.pallet_rfid)
+        if not exists("Warehouse", warehouse_tag):
+            raise Exception("Invalid Location/Bin RFID. Please scan a valid bin/pallet tag first.")
             
-        items_to_issue = []
+        if not data.item_rfid:
+            raise Exception("Item RFID is required for 2-step verification. Please scan the item.")
+            
+        item_code = resolve_item_from_rfid(data.item_rfid)
+        if not item_code:
+            raise Exception("Invalid Item RFID. Could not resolve item code.")
+            
+        # Verify that the item has stock in the specified warehouse
+        r_bin = requests.get(
+            f"{ERP_URL}/api/resource/Bin",
+            headers=HEADERS,
+            params={"filters": json.dumps([["warehouse", "=", warehouse_tag], ["item_code", "=", item_code], ["actual_qty", ">", 0]]), "fields": '["actual_qty"]'}
+        )
         
-        if is_warehouse:
-            # Query all items in this warehouse bin
+        if r_bin.status_code != 200 or not r_bin.json().get("data"):
+            raise Exception(f"Item {item_code} not found in location {warehouse_tag} with quantity > 0.")
+            
+        bins = r_bin.json().get("data")
+        qty = float(bins[0].get("actual_qty", 1.0))
+        
+        # Check if the item's batch is marked for dispatch
+        dispatch_marked = requests.get(
+            f"{ERP_URL}/api/resource/Batch", 
+            headers=HEADERS, 
+            params={"filters": json.dumps([["item", "=", item_code], ["custom_marked_for_dispatch", "=", 1]]), "fields": '["name"]'}
+        )
+        
+        if dispatch_marked.status_code != 200 or not dispatch_marked.json().get("data"):
+             raise Exception(f"Item {item_code} is not marked for dispatch.")
+             
+        dispatch_marked_bins = dispatch_marked.json().get("data", [])
+        
+        items_to_issue = [{
+            "item_code": item_code,
+            "qty": qty,
+            "s_warehouse": warehouse_tag
+        }]
+        
+        # Unmark the batch
+        for d_batch in dispatch_marked_bins:
             try:
-                r = requests.get(
-                    f"{ERP_URL}/api/resource/Bin",
-                    headers=HEADERS,
-                    params={"filters": json.dumps([["warehouse", "=", tag], ["actual_qty", ">", 0]]), "fields": '["item_code", "actual_qty"]'}
-                )
-                if r.status_code == 200:
-                    for b in r.json().get("data", []):
-                        items_to_issue.append({
-                            "item_code": b["item_code"],
-                            "qty": float(b["actual_qty"]),
-                            "s_warehouse": tag
-                        })
+                erp_put("Batch", d_batch["name"], {"custom_marked_for_dispatch": 0})
             except Exception:
                 pass
-        else:
-            # It's an item RFID tag. Resolve the item and find where it has stock
-            item_code = resolve_item_from_rfid(tag)
-            src_wh = get_item_source_warehouse(item_code)
-            
-            # Find the actual quantity in the source warehouse bin
-            qty = 1.0
-            try:
-                r_bin = requests.get(
-                    f"{ERP_URL}/api/resource/Bin",
-                    headers=HEADERS,
-                    params={"filters": json.dumps([["warehouse", "=", src_wh], ["item_code", "=", item_code]]), "fields": '["actual_qty"]'}
-                )
-                if r_bin.status_code == 200:
-                    bins = r_bin.json().get("data", [])
-                    if bins:
-                        qty = float(bins[0].get("actual_qty", 1.0))
-            except Exception:
-                pass
-                
-            items_to_issue.append({
-                "item_code": item_code,
-                "qty": qty,
-                "s_warehouse": src_wh
-            })
-            
-        if not items_to_issue:
-            raise Exception("No stock found in ERPNext to dispatch for this RFID tag.")
             
         # Build Stock Entry (Material Issue) payload
         items_payload = []
@@ -2425,12 +2504,12 @@ def api_wms_dispatch(data: WmsDispatchSchema):
         se = erp_post("Stock Entry", payload)
         submit_doc("Stock Entry", se["name"])
         
-        # Mark warehouse as dispatched if it's a warehouse
-        if is_warehouse:
-            try:
-                erp_put("Warehouse", tag, {"custom_dispatch_success": 1, "disabled": 1})
-            except Exception:
-                pass
+        # Not needed since we enforce location scanning
+        # if is_warehouse:
+        #    try:
+        #        erp_put("Warehouse", tag, {"custom_dispatch_success": 1, "disabled": 1})
+        #    except Exception:
+        #        pass
                 
         # Log activity in ERPNext
         try:
@@ -2438,7 +2517,7 @@ def api_wms_dispatch(data: WmsDispatchSchema):
             log_wms_activity(
                 activity_type="Dispatch",
                 operator="System",
-                target_location=tag,
+                target_location=warehouse_tag,
                 details=f"Dispatched items: {item_details}"
             )
         except Exception:
@@ -2762,4 +2841,181 @@ def api_wms_resolve_tag_info(rfid: str):
             "location": "N/A"
         }
     except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/wms/warehouse-layout")
+def get_warehouse_layout():
+    try:
+        r_wh = requests.get(f'{ERP_URL}/api/resource/Warehouse?fields=["name","parent_warehouse","is_group"]&limit_page_length=1000', headers=HEADERS)
+        r_bin = requests.get(f'{ERP_URL}/api/resource/Bin?fields=["item_code","warehouse","actual_qty"]&limit_page_length=1000', headers=HEADERS)
+        r_batch = requests.get(f'{ERP_URL}/api/resource/Batch?fields=["name","item","expiry_date","custom_marked_for_dispatch"]&limit_page_length=1000', headers=HEADERS)
+        
+        warehouses = r_wh.json().get("data", []) if r_wh.status_code == 200 else []
+        bins = r_bin.json().get("data", []) if r_bin.status_code == 200 else []
+        batches = r_batch.json().get("data", []) if r_batch.status_code == 200 else []
+        
+        batch_map = {}
+        for b in batches:
+            if b.get("expiry_date"):
+                if b["item"] not in batch_map or b["expiry_date"] < batch_map[b["item"]]["expiry_date"]:
+                    batch_map[b["item"]] = b
+                    
+        stock_map = {}
+        for b in bins:
+            if b.get("actual_qty", 0) > 0:
+                wh = b.get("warehouse")
+                if wh not in stock_map:
+                    stock_map[wh] = []
+                
+                item_code = b.get("item_code")
+                batch_info = batch_map.get(item_code, {})
+                
+                stock_map[wh].append({
+                    "itemCode": item_code,
+                    "itemName": item_code,
+                    "packSize": 1,
+                    "packCount": b["actual_qty"],
+                    "totalWeight": b["actual_qty"],
+                    "uom": "Units",
+                    "expiryDate": batch_info.get("expiry_date"),
+                    "batchNo": batch_info.get("name"),
+                    "markedForDispatch": batch_info.get("custom_marked_for_dispatch") == 1
+                })
+                
+        children_map = {}
+        for w in warehouses:
+            pw = w.get("parent_warehouse")
+            if pw:
+                if pw not in children_map:
+                    children_map[pw] = []
+                children_map[pw].append(w)
+                
+        top_warehouses = [w for w in warehouses if w.get("parent_warehouse") == "All Warehouses - V"]
+        
+        result = {}
+        for root in top_warehouses:
+            root_racks = []
+            racks = children_map.get(root["name"], [])
+            
+            for rack in racks:
+                rack_rows = []
+                rows = children_map.get(rack["name"], [])
+                
+                for row in rows:
+                    row_bins = []
+                    bins_nodes = children_map.get(row["name"], [])
+                    
+                    for bn in bins_nodes:
+                        row_bins.append({
+                            "id": bn["name"],
+                            "name": bn["name"].split(" - ")[0],
+                            "items": stock_map.get(bn["name"], [])
+                        })
+                        
+                    if len(row_bins) == 0 and len(stock_map.get(row["name"], [])) > 0:
+                        row_bins.append({
+                            "id": row["name"] + "_bin",
+                            "name": row["name"].split(" - ")[0],
+                            "items": stock_map.get(row["name"])
+                        })
+                        
+                    rack_rows.append({
+                        "id": row["name"],
+                        "name": row["name"].split(" - ")[0],
+                        "bins": row_bins
+                    })
+                    
+                root_racks.append({
+                    "id": rack["name"],
+                    "name": rack["name"].split(" - ")[0],
+                    "rows": rack_rows
+                })
+                
+            result[root["name"]] = root_racks
+            
+        return result
+    except Exception as e:
+        print("Error fetching warehouse layout:", e)
+        return {}
+
+@app.put("/wms/mark-dispatch/{batch_no}")
+def api_wms_mark_dispatch(batch_no: str):
+    try:
+        r = requests.put(
+            f"{ERP_URL}/api/resource/Batch/{batch_no}",
+            headers=HEADERS,
+            json={"custom_marked_for_dispatch": 1}
+        )
+        if r.status_code >= 400:
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/wms/root-warehouses")
+def get_root_warehouses():
+    try:
+        url = f'{ERP_URL}/api/resource/Warehouse?fields=["name","warehouse_name"]&filters=[["parent_warehouse","=","All Warehouses - V"]]&limit_page_length=100'
+        r = requests.get(url, headers=HEADERS)
+        if r.status_code == 200:
+            data = r.json().get("data", [])
+            return [{"id": w["name"], "name": w.get("warehouse_name", w["name"])} for w in data]
+        return []
+    except Exception as e:
+        print("Error fetching root warehouses:", e)
+        return []
+
+@app.get("/wms/dashboard-metrics")
+def get_dashboard_metrics():
+    from datetime import datetime, timedelta
+    try:
+        r_bin = requests.get(f'{ERP_URL}/api/resource/Bin?fields=["item_code","warehouse","actual_qty"]&limit_page_length=5000', headers=HEADERS)
+        r_batch = requests.get(f'{ERP_URL}/api/resource/Batch?fields=["name","item","expiry_date"]&limit_page_length=5000', headers=HEADERS)
+        
+        bins = r_bin.json().get("data", []) if r_bin.status_code == 200 else []
+        batches = r_batch.json().get("data", []) if r_batch.status_code == 200 else []
+        
+        unique_items = set()
+        total_stock = 0
+        occupied_bins = set()
+        empty_bins = set()
+        
+        for b in bins:
+            qty = b.get("actual_qty", 0)
+            wh = b.get("warehouse")
+            
+            if qty > 0:
+                unique_items.add(b.get("item_code"))
+                total_stock += qty
+                occupied_bins.add(wh)
+            else:
+                empty_bins.add(wh)
+                
+        empty_bins = empty_bins - occupied_bins
+        
+        today = datetime.now().date()
+        thirty_days = today + timedelta(days=30)
+        
+        expiring_soon = 0
+        expired = 0
+        
+        for b in batches:
+            exp_date_str = b.get("expiry_date")
+            if exp_date_str:
+                exp_date = datetime.strptime(exp_date_str, "%Y-%m-%d").date()
+                if exp_date < today:
+                    expired += 1
+                elif today <= exp_date <= thirty_days:
+                    expiring_soon += 1
+                    
+        return {
+            "totalItems": len(unique_items),
+            "totalStock": total_stock,
+            "occupiedBins": len(occupied_bins),
+            "emptyBins": len(empty_bins),
+            "expiringSoon": expiring_soon,
+            "expired": expired
+        }
+    except Exception as e:
+        print("Error fetching dashboard metrics:", e)
         raise HTTPException(status_code=500, detail=str(e))

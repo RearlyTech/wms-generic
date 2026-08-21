@@ -216,21 +216,21 @@ export default function WarehouseCheckPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Header */}
-      <header className="bg-slate-900 text-white py-4 px-6 md:px-12 flex items-center justify-between border-b border-slate-800 shadow">
-        <div className="flex items-center gap-3.5">
+      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => router.push("/dashboard")}
-            className="p-1.5 hover:bg-slate-800 active:bg-slate-755 text-slate-300 rounded-lg transition"
+            className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors text-slate-600"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 rounded-lg">
+            <div className="p-1.5 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-lg shadow-sm">
               <Boxes className="h-4 w-4" />
             </div>
             <div>
-              <h1 className="text-sm font-bold tracking-tight">Warehouse Tracker</h1>
-              <p className="text-[10px] text-slate-400 font-mono">Location & Expiry Date Controller</p>
+              <h1 className="text-sm font-bold tracking-tight text-slate-900">Warehouse Tracker</h1>
+              <p className="text-[10px] text-slate-500 font-mono">Location & Expiry Date Controller</p>
             </div>
           </div>
         </div>
