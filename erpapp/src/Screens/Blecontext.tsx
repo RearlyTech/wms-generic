@@ -16,6 +16,8 @@ import {
 import Geolocation from 'react-native-geolocation-service';
 import { Buffer } from 'buffer';
 
+import { useHIDScanner } from '../hooks/useHIDScanner';
+
 // Interface for BLE context
 interface BLEContextProps {
   bleManager: BleManager;
@@ -56,6 +58,13 @@ export const BLEProvider: React.FC<BLEProviderProps> = ({ children }) => {
   const [notificationSubscription, setNotificationSubscription] =
     useState<Subscription | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
+
+  // Global HID Scanner integration
+  useHIDScanner((tag) => {
+    setRfid(tag);
+    // Clear the tag shortly after so that scanning the same tag again triggers effects
+    setTimeout(() => setRfid(''), 100);
+  });
 
   // Request permissions for BLE (Android-specific)
   const requestPermissions = async (): Promise<boolean> => {

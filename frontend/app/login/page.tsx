@@ -61,6 +61,12 @@ export default function LoginPage() {
       if (res.ok) {
         if (typeof window !== "undefined") {
           localStorage.setItem("erp_token", data.access_token);
+          if (data.directus_access_token) {
+            localStorage.setItem("directus_access_token", data.directus_access_token);
+          }
+          if (data.directus_refresh_token) {
+            localStorage.setItem("directus_refresh_token", data.directus_refresh_token);
+          }
           localStorage.setItem("erp_backend_url", backendUrl);
         }
         console.log("handleLogin: Authentication successful, redirecting to Dashboard");

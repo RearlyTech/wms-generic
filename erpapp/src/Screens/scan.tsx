@@ -38,6 +38,7 @@ const Scan = ({ navigation }: { navigation: any }) => {
     isScanning,
     connectedDevice,
     rfid,
+    setRfid,
   } = useBLE();
   const scaleAnim2 = useRef(new Animated.Value(1)).current;
   const scaleAnim3 = useRef(new Animated.Value(1)).current;

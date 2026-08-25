@@ -18,6 +18,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+import fastapi
+@app.get("/wms/door-status")
+def get_door_status(authorization: str = fastapi.Header(default=None)):
+    try:
+        url = "https://dev-directus.rearlytech.com/items/gateway_sensor_readings?filter[sensor_type][_eq]=door_uart&limit=1&sort=-created_at"
+        headers = {}
+        if authorization:
+            headers["Authorization"] = authorization
+            
+        response = requests.get(url, headers=headers, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("data") and len(data["data"]) > 0:
+                return {"door_status": data["data"][0].get("door_status", "Unknown")}
+        return {"door_status": "Unknown"}
+    except Exception as e:
+        print(f"Error fetching door status: {e}")
+        return {"door_status": "Unknown"}
+
 # ERP_URL = "https://erpnext-qvg-hla.m.frappe.cloud"
 ERP_URL = "http://192.168.29.59:8000"
 
@@ -402,19 +421,23 @@ def create_secure_jwt_token(email: str, api_key: Optional[str], api_secret: Opti
 @app.post("/api/auth/login")
 def login_user(data: LoginRequest):
     payload = {
-        "usr": data.email,
-        "pwd": data.password
+        "email": data.email,
+        "password": data.password
     }
     
     session = requests.Session()
-    login_response = session.post(f"{ERP_URL}/api/method/login", data=payload)
+    login_response = session.post("https://dev-directus.rearlytech.com/auth/login", json=payload)
     
     if login_response.status_code != 200:
-        print(f"ERPNext Login failed. Status: {login_response.status_code}, Response: {login_response.text}")
+        print(f"Directus Login failed. Status: {login_response.status_code}, Response: {login_response.text}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid email or password. ERPNext returned {login_response.status_code}: {login_response.text}"
+            detail=f"Invalid email or password. Directus returned {login_response.status_code}: {login_response.text}"
         )
+    
+    directus_data = login_response.json().get("data", {})
+    directus_access_token = directus_data.get("access_token")
+    directus_refresh_token = directus_data.get("refresh_token")
         
     # Use the existing active key & secret defined in the backend config
     api_key = API_KEY
@@ -422,7 +445,13 @@ def login_user(data: LoginRequest):
 
     token = create_secure_jwt_token(email=data.email, api_key=api_key, api_secret=api_secret)
 
-    return {"message": "Login successful", "access_token": token, "token_type": "bearer"}
+    return {
+        "message": "Login successful", 
+        "access_token": token, 
+        "token_type": "bearer",
+        "directus_access_token": directus_access_token,
+        "directus_refresh_token": directus_refresh_token
+    }
 
 @app.post("/warehouse")
 def api_create_warehouse(data: WarehouseSchema):

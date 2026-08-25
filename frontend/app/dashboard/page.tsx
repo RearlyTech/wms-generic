@@ -15,7 +15,9 @@ import {
   XCircle,
   ServerCrash,
   Loader2,
-  Factory
+  Factory,
+  DoorOpen,
+  DoorClosed
 } from "lucide-react";
 
 interface DashboardMetrics {
@@ -59,18 +61,49 @@ export default function WarehouseDashboard() {
         setLoading(false);
       }
     };
-    
+
     fetchMetrics();
     // Poll every 60 seconds
     const interval = setInterval(fetchMetrics, 60000);
     return () => clearInterval(interval);
   }, [backendUrl]);
 
+  // Directus Door Status
+  const [doorStatus, setDoorStatus] = useState<string>("Unknown");
+
+  useEffect(() => {
+    const fetchDoorStatus = async () => {
+      try {
+        const directusToken = localStorage.getItem("directus_access_token");
+        const fetchHeaders: Record<string, string> = {};
+        if (directusToken) {
+          fetchHeaders["Authorization"] = `Bearer ${directusToken}`;
+        }
+        const res = await fetch(`${backendUrl}/wms/door-status`, { headers: fetchHeaders, mode: "cors" });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.door_status) {
+            setDoorStatus(json.door_status);
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to fetch door status from Directus", err);
+      }
+    };
+
+    fetchDoorStatus();
+    const interval = setInterval(fetchDoorStatus, 10000); // Poll every 10s
+    return () => clearInterval(interval);
+  }, []);
+
   const handleLogout = () => {
+    localStorage.removeItem("erp_token");
     localStorage.removeItem("erp_jwt");
     localStorage.removeItem("erp_user");
     localStorage.removeItem("erp_first_name");
     localStorage.removeItem("erp_full_name");
+    localStorage.removeItem("directus_access_token");
+    localStorage.removeItem("directus_refresh_token");
     document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     document.cookie = "user_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     router.push("/login");
@@ -101,7 +134,7 @@ export default function WarehouseDashboard() {
       </header>
 
       <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full flex flex-col gap-8">
-        
+
         {/* Metrics Grid */}
         <section>
           <div className="flex items-center justify-between mb-4">
@@ -116,7 +149,7 @@ export default function WarehouseDashboard() {
             <div className="w-full bg-rose-50 border border-rose-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
               <ServerCrash className="w-8 h-8 text-rose-400 mb-2" />
               <p className="text-slate-700 font-medium">{error}</p>
-              <button 
+              <button
                 onClick={() => window.location.reload()}
                 className="mt-4 text-xs font-bold text-rose-600 bg-white border border-rose-200 px-3 py-1.5 rounded hover:bg-rose-50"
               >
@@ -135,7 +168,7 @@ export default function WarehouseDashboard() {
                   <h3 className="text-3xl font-black text-slate-900">{metrics?.totalItems.toLocaleString() ?? "-"}</h3>
                 </div>
               </div>
-              
+
               {/* Metric 2 */}
               <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
@@ -191,6 +224,25 @@ export default function WarehouseDashboard() {
                   <h3 className="text-3xl font-black text-rose-600">{metrics?.expired.toLocaleString() ?? "-"}</h3>
                 </div>
               </div>
+
+              {/* Metric 7 - Door Status */}
+              <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                  {doorStatus?.toLowerCase() === 'open' ? (
+                    <DoorOpen className="w-16 h-16 text-amber-500" />
+                  ) : (
+                    <DoorClosed className="w-16 h-16 text-emerald-600" />
+                  )}
+                </div>
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Main Door Status</p>
+                <div className="flex items-baseline gap-2">
+                  <h3 className={`text-3xl font-black ${doorStatus?.toLowerCase() === 'open' ? 'text-amber-500' :
+                    doorStatus?.toLowerCase() === 'close' || doorStatus?.toLowerCase() === 'closed' ? 'text-emerald-600' : 'text-slate-900'
+                    }`}>
+                    {doorStatus ? (doorStatus.charAt(0).toUpperCase() + doorStatus.slice(1)) : "Unknown"}
+                  </h3>
+                </div>
+              </div>
             </div>
           )}
         </section>
@@ -201,9 +253,9 @@ export default function WarehouseDashboard() {
             <Boxes className="w-5 h-5 text-indigo-500" />
             Quick Actions
           </h2>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <button 
+            <button
               onClick={() => router.push("/warehouse-visualizer")}
               className="flex flex-col items-start p-6 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-2xl transition-colors text-left group"
             >
@@ -213,8 +265,8 @@ export default function WarehouseDashboard() {
               <h3 className="text-base font-bold text-indigo-900 mb-1">Warehouse Visualizer</h3>
               <p className="text-xs font-medium text-indigo-700">View 2D layouts and inspect bins.</p>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => router.push("/exception-report")}
               className="flex flex-col items-start p-6 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-2xl transition-colors text-left group"
             >
@@ -224,8 +276,8 @@ export default function WarehouseDashboard() {
               <h3 className="text-base font-bold text-rose-900 mb-1">Exception Report</h3>
               <p className="text-xs font-medium text-rose-700">Review discrepancies and dispatch logs.</p>
             </button>
-            
-            <button 
+
+            <button
               onClick={() => router.push("/warehouse-check")}
               className="flex flex-col items-start p-6 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-2xl transition-colors text-left group"
             >
@@ -236,7 +288,7 @@ export default function WarehouseDashboard() {
               <p className="text-xs font-medium text-emerald-700">Scan and verify physical stock.</p>
             </button>
 
-            <button 
+            <button
               onClick={() => router.push("/manufacturing-console")}
               className="flex flex-col items-start p-6 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-2xl transition-colors text-left group"
             >

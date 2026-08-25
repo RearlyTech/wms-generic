@@ -283,7 +283,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
                   style={styles.input}
                   placeholder="Scan or enter new RFID tag..."
                   value={newRfid}
-                  onChangeText={setNewRfid}
+                  editable={false}
                   placeholderTextColor="#999"
                 />
                 {newRfid ? (

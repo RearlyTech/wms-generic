@@ -1,6 +1,6 @@
 import React from 'react';
 import 'react-native-gesture-handler';
-import { enableScreens } from 'react-native-screens'; 
+import { enableScreens } from 'react-native-screens';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -20,34 +20,44 @@ import FindPalletScreen from './src/Screens/Wms/FindPalletScreen';
 import DispatchScreen from './src/Screens/Wms/DispatchScreen';
 import ExceptionReportScreen from './src/Screens/Wms/ExceptionReportScreen';
 
+import LoginScreen from './src/Screens/LoginScreen';
+import DoorMonitor from './src/common/DoorMonitor';
+import { getItem } from './src/Storage/Storage';
+
 enableScreens(true);
 
 const Stack = createStackNavigator();
 
 function App() {
+  const hasToken = getItem('authToken');
+  const initialRoute = hasToken ? "Scan" : "Login";
+
   return (
     <SafeAreaProvider>
       <BLEProvider>
-        <NavigationContainer>
-          <Stack.Navigator 
-            initialRouteName="Scan"
-            screenOptions={{ headerShown: false }}
-          >
-            <Stack.Screen name="Scan" component={Scan} />
-            <Stack.Screen name="ItemDetailScreen" component={ItemDetailScreen} />
-            <Stack.Screen name="WmsDashboard" component={WmsDashboard} />
-            <Stack.Screen name="ReceivePallet" component={ReceivePalletScreen} />
-            <Stack.Screen name="PutAway" component={PutAwayScreen} />
-            <Stack.Screen name="Retrieve" component={RetrieveScreen} />
-            <Stack.Screen name="MovePallet" component={MovePalletScreen} />
-            <Stack.Screen name="Repack" component={RepackScreen} />
-            <Stack.Screen name="MergePallets" component={MergePalletsScreen} />
-            <Stack.Screen name="StockCount" component={StockCountScreen} />
-            <Stack.Screen name="FindPallet" component={FindPalletScreen} />
-            <Stack.Screen name="Dispatch" component={DispatchScreen} />
-            <Stack.Screen name="ExceptionReport" component={ExceptionReportScreen} />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <DoorMonitor>
+          <NavigationContainer>
+            <Stack.Navigator
+              initialRouteName={initialRoute}
+              screenOptions={{ headerShown: false }}
+            >
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Scan" component={Scan} />
+              <Stack.Screen name="ItemDetailScreen" component={ItemDetailScreen} />
+              <Stack.Screen name="WmsDashboard" component={WmsDashboard} />
+              <Stack.Screen name="ReceivePallet" component={ReceivePalletScreen} />
+              <Stack.Screen name="PutAway" component={PutAwayScreen} />
+              <Stack.Screen name="Retrieve" component={RetrieveScreen} />
+              <Stack.Screen name="MovePallet" component={MovePalletScreen} />
+              <Stack.Screen name="Repack" component={RepackScreen} />
+              <Stack.Screen name="MergePallets" component={MergePalletsScreen} />
+              <Stack.Screen name="StockCount" component={StockCountScreen} />
+              <Stack.Screen name="FindPallet" component={FindPalletScreen} />
+              <Stack.Screen name="Dispatch" component={DispatchScreen} />
+              <Stack.Screen name="ExceptionReport" component={ExceptionReportScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </DoorMonitor>
       </BLEProvider>
     </SafeAreaProvider>
   );

@@ -160,7 +160,7 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
               style={styles.input}
               placeholder="Waiting for RFID scan..."
               value={scannedRfid}
-              onChangeText={setScannedRfid}
+              editable={false}
               placeholderTextColor="#999"
             />
             {scannedRfid ? (

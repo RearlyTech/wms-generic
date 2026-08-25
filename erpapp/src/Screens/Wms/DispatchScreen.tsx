@@ -212,7 +212,7 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
               style={styles.input}
               placeholder="Scan Bin/Pallet RFID..."
               value={palletRfid}
-              onChangeText={setPalletRfid}
+              editable={false}
               placeholderTextColor="#999"
             />
             {palletRfid ? (
@@ -229,7 +229,7 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
               style={styles.input}
               placeholder="Scan Item RFID..."
               value={itemRfid}
-              onChangeText={setItemRfid}
+              editable={false}
               placeholderTextColor="#999"
             />
             {itemRfid ? (
