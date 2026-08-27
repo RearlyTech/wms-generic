@@ -4,9 +4,21 @@ import { readItems } from '@directus/sdk';
 import { directus } from '../lib/directus';
 import { getItem } from '../Storage/Storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import Sound from 'react-native-sound';
+
+Sound.setCategory('Playback');
+const beepSound = new Sound('alarm.mp3', Sound.MAIN_BUNDLE, (error) => {
+  if (error) {
+    console.log('Failed to load the sound', error);
+  } else {
+    beepSound.setNumberOfLoops(-1);
+  }
+});
 
 export default function DoorMonitor({ children }: { children: React.ReactNode }) {
+  const [alarmActive, setAlarmActive] = useState(false);
   const [doorOpen, setDoorOpen] = useState(false);
+  const [amoniaHigh, setAmoniaHigh] = useState(false);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -22,12 +34,46 @@ export default function DoorMonitor({ children }: { children: React.ReactNode })
             filter: { sensor_type: { _eq: 'door_uart' } },
             limit: 1,
             sort: ['-created_at'],
+            fields: ['*'],
           })
         );
 
         if (response && response.length > 0) {
-          const status = response[0].door_status?.toLowerCase();
-          setDoorOpen(status === 'open');
+          const item = response[0];
+          
+          let isAlarm = false;
+          let isAmonia = false;
+          let isDoorOpen = false;
+
+          // Check direct DB fields if they exist
+          if (item.alarm_status) {
+            isAlarm = String(item.alarm_status).toUpperCase() === 'ACTIVE';
+          }
+          if (item.amonia_status) {
+            isAmonia = String(item.amonia_status).toUpperCase() === 'HIGH';
+          }
+          if (item.door_status) {
+            isDoorOpen = String(item.door_status).toUpperCase() === 'OPEN';
+          }
+
+          if (item.raw_json) {
+            try {
+              let parsed = typeof item.raw_json === 'string' ? JSON.parse(item.raw_json) : item.raw_json;
+              if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+
+              const alarmStatus = parsed?.values?.alarm_status || parsed?.alarm_status || '';
+              const amoniaStatus = parsed?.values?.amonia_status || parsed?.amonia_status || '';
+              const doorStatus = parsed?.values?.door_status || parsed?.door_status || '';
+              
+              if (String(alarmStatus).toUpperCase() === 'ACTIVE') isAlarm = true;
+              if (String(amoniaStatus).toUpperCase() === 'HIGH') isAmonia = true;
+              if (String(doorStatus).toUpperCase() === 'OPEN') isDoorOpen = true;
+            } catch (e) {}
+          }
+          
+          setAlarmActive(isAlarm);
+          setAmoniaHigh(isAmonia);
+          setDoorOpen(isDoorOpen);
         }
       } catch (err) {
         // console.warn('Failed to check door status:', err);
@@ -42,11 +88,37 @@ export default function DoorMonitor({ children }: { children: React.ReactNode })
     return () => clearInterval(interval);
   }, []);
 
+  // Make the overall alert state dependent on any of the three flags
+  const isAnyAlertActive = alarmActive || doorOpen || amoniaHigh;
+
+  useEffect(() => {
+    if (isAnyAlertActive) {
+      beepSound.play((success) => {
+        if (!success) console.log('Sound playback failed');
+      });
+    } else {
+      beepSound.stop();
+    }
+
+    return () => {
+      beepSound.stop();
+    };
+  }, [isAnyAlertActive]);
+
+  let alertMessage = "An emergency alarm has been triggered in the warehouse.";
+  if (doorOpen && amoniaHigh) {
+    alertMessage = "CRITICAL: Ammonia levels are HIGH and the main warehouse door is OPEN!";
+  } else if (doorOpen) {
+    alertMessage = "The main warehouse door has been left OPEN.";
+  } else if (amoniaHigh) {
+    alertMessage = "Ammonia levels are HIGH in the facility!";
+  }
+
   return (
     <>
       {children}
       <Modal
-        visible={doorOpen}
+        visible={isAnyAlertActive}
         transparent={true}
         animationType="fade"
         onRequestClose={() => { }} // prevents dismissing via back button on Android
@@ -54,10 +126,8 @@ export default function DoorMonitor({ children }: { children: React.ReactNode })
         <View style={styles.modalBackground}>
           <View style={styles.alertBox}>
             <Icon name="warning" size={64} color="#E11D48" style={{ marginBottom: 16 }} />
-            <Text style={styles.alertTitle}>DOOR IS OPEN</Text>
-            <Text style={styles.alertMessage}>
-              Please close the main warehouse door to continue using the application.
-            </Text>
+            <Text style={styles.alertTitle}>EMERGENCY ALARM</Text>
+            <Text style={styles.alertMessage}>{alertMessage}</Text>
           </View>
         </View>
       </Modal>

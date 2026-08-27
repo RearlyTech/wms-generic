@@ -34,6 +34,7 @@ interface StockLocation {
   shelf: string;
   bin: string;
   expiry_date: string;
+  is_reserved?: boolean;
 }
 
 interface WarehouseCheckItem {
@@ -63,6 +64,16 @@ interface EmptyBin {
   uom: string | null;
 }
 
+interface SlowMovingItem {
+  warehouse: string;
+  itemCode: string;
+  itemName: string;
+  itemGroup: string;
+  quantity: number;
+  daysAgo: number;
+  creationDate: string;
+}
+
 export default function WarehouseCheckPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -77,12 +88,15 @@ export default function WarehouseCheckPage() {
   const [itemCheckData, setItemCheckData] = useState<ItemCheckResponse | null>(null);
   const [batchCheckData, setBatchCheckData] = useState<ItemCheckResponse | null>(null);
   const [emptyBins, setEmptyBins] = useState<EmptyBin[]>([]);
+  const [slowMovingItems, setSlowMovingItems] = useState<SlowMovingItem[]>([]);
 
   // UI state
   const [isSearchingItem, setIsSearchingItem] = useState<boolean>(false);
   const [isSearchingBatch, setIsSearchingBatch] = useState<boolean>(false);
   const [isSearchingEmptyBins, setIsSearchingEmptyBins] = useState<boolean>(false);
+  const [isSearchingSlowMoving, setIsSearchingSlowMoving] = useState<boolean>(false);
   const [showEmptyBinsList, setShowEmptyBinsList] = useState<boolean>(false);
+  const [showSlowMovingList, setShowSlowMovingList] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Authenticate session check and fetch items
@@ -197,6 +211,24 @@ export default function WarehouseCheckPage() {
       setErrorMessage(err.message || "Failed to retrieve empty warehouses.");
     } finally {
       setIsSearchingEmptyBins(false);
+    }
+  };
+
+  // Handle Fetch Slow Moving FG API request
+  const handleShowSlowMoving = async () => {
+    setIsSearchingSlowMoving(true);
+    setErrorMessage(null);
+    setShowEmptyBinsList(false);
+    try {
+      const res = await fetch(`${backendUrl}/wms/slow-moving-items`, { mode: "cors" });
+      if (!res.ok) throw new Error("Error retrieving slow moving items");
+      const data = await res.json();
+      setSlowMovingItems(data);
+      setShowSlowMovingList(true);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to retrieve slow moving items.");
+    } finally {
+      setIsSearchingSlowMoving(false);
     }
   };
 
@@ -344,6 +376,24 @@ export default function WarehouseCheckPage() {
                 <span className="text-slate-500 font-bold">{emptyBins.length} empty bins found</span>
               )}
             </div>
+
+            <div className="pt-4 border-t border-slate-100 mt-2">
+              <button
+                type="button"
+                onClick={handleShowSlowMoving}
+                disabled={isSearchingSlowMoving}
+                className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5 shadow"
+              >
+                {isSearchingSlowMoving ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Finding Slow Moving Items...
+                  </>
+                ) : (
+                  "Show Slow Moving FG"
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -394,10 +444,24 @@ export default function WarehouseCheckPage() {
                             <tbody>
                               {item.stock_locations.map((loc, lIdx) => (
                                 <tr key={lIdx} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/40 transition font-mono">
-                                  <td className="py-2.5 px-3 font-semibold text-slate-700">{loc.main_warehouse}</td>
+                                  <td className="py-2.5 px-3 font-semibold text-slate-700">
+                                    {loc.main_warehouse}
+                                    {loc.is_reserved && (
+                                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 uppercase tracking-wider">
+                                        Reserved
+                                      </span>
+                                    )}
+                                  </td>
                                   <td className="py-2.5 px-3 text-slate-600">{loc.rack}</td>
                                   <td className="py-2.5 px-3 text-slate-600">{loc.shelf}</td>
-                                  <td className="py-2.5 px-3 text-slate-600">{loc.bin}</td>
+                                  <td className="py-2.5 px-3 text-slate-600">
+                                    {loc.bin}
+                                    {loc.is_reserved && loc.bin !== "None" && (
+                                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 uppercase tracking-wider">
+                                        Reserved
+                                      </span>
+                                    )}
+                                  </td>
                                   <td className="py-2.5 px-3 text-right font-bold text-slate-800">{loc.qty}</td>
                                 </tr>
                               ))}
@@ -465,10 +529,24 @@ export default function WarehouseCheckPage() {
                             <tbody>
                               {item.stock_locations.map((loc, lIdx) => (
                                 <tr key={lIdx} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/40 transition font-mono">
-                                  <td className="py-2.5 px-3 font-semibold text-slate-700">{loc.main_warehouse}</td>
+                                  <td className="py-2.5 px-3 font-semibold text-slate-700">
+                                    {loc.main_warehouse}
+                                    {loc.is_reserved && (
+                                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 uppercase tracking-wider">
+                                        Reserved
+                                      </span>
+                                    )}
+                                  </td>
                                   <td className="py-2.5 px-3 text-slate-600">{loc.rack}</td>
                                   <td className="py-2.5 px-3 text-slate-600">{loc.shelf}</td>
-                                  <td className="py-2.5 px-3 text-slate-600">{loc.bin}</td>
+                                  <td className="py-2.5 px-3 text-slate-600">
+                                    {loc.bin}
+                                    {loc.is_reserved && loc.bin !== "None" && (
+                                      <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-100 text-amber-800 uppercase tracking-wider">
+                                        Reserved
+                                      </span>
+                                    )}
+                                  </td>
                                   <td className="py-2.5 px-3 text-right font-bold text-slate-800">{loc.qty}</td>
                                 </tr>
                               ))}
@@ -557,6 +635,70 @@ export default function WarehouseCheckPage() {
               ) : (
                 <div className="py-8 text-center text-xs text-slate-400 font-mono border-2 border-dashed border-slate-200 rounded-xl">
                   No empty bins found. All warehouses contain active stock allocations.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Slow Moving FG Results */}
+          {showSlowMovingList && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4.5 w-4.5 text-amber-500" />
+                  <span className="text-sm font-bold text-slate-800 font-mono">
+                    Slow Moving Finished Goods
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowSlowMovingList(false)}
+                  className="text-xs text-slate-400 hover:text-slate-605 font-mono"
+                >
+                  Hide List
+                </button>
+              </div>
+
+              {slowMovingItems.length > 0 ? (
+                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-inner bg-slate-50/50">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-500 uppercase tracking-wider font-mono text-[9px] border-b border-slate-200">
+                        <th className="py-2.5 px-3">Warehouse</th>
+                        <th className="py-2.5 px-3">Item Name</th>
+                        <th className="py-2.5 px-3">Item Group</th>
+                        <th className="py-2.5 px-3 text-right">Quantity</th>
+                        <th className="py-2.5 px-3">Creation Date</th>
+                        <th className="py-2.5 px-3 text-right">Days in Warehouse</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {slowMovingItems.map((item, idx) => (
+                        <tr key={idx} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/40 transition font-mono">
+                          <td className="py-2.5 px-3 font-semibold text-slate-700">{item.warehouse}</td>
+                          <td className="py-2.5 px-3 text-slate-600">
+                            <span className="font-bold">{item.itemName}</span><br />
+                            <span className="text-[9px] text-slate-400">{item.itemCode}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600">{item.itemGroup}</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-800">{item.quantity}</td>
+                          <td className="py-2.5 px-3 text-slate-600">{item.creationDate}</td>
+                          <td className="py-2.5 px-3 text-right">
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold ${
+                              item.daysAgo > 30 ? "bg-rose-50 text-rose-700 border border-rose-200" : 
+                              item.daysAgo > 14 ? "bg-amber-50 text-amber-700 border border-amber-200" : 
+                              "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            }`}>
+                              {item.daysAgo} Days
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-slate-400 font-mono border-2 border-dashed border-slate-200 rounded-xl">
+                  No stock items found in the warehouse.
                 </div>
               )}
             </div>

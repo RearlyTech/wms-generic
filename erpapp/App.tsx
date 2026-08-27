@@ -19,6 +19,7 @@ import StockCountScreen from './src/Screens/Wms/StockCountScreen';
 import FindPalletScreen from './src/Screens/Wms/FindPalletScreen';
 import DispatchScreen from './src/Screens/Wms/DispatchScreen';
 import ExceptionReportScreen from './src/Screens/Wms/ExceptionReportScreen';
+import FlagPallet from './src/Screens/FlagPallet';
 
 import LoginScreen from './src/Screens/LoginScreen';
 import DoorMonitor from './src/common/DoorMonitor';
@@ -55,6 +56,7 @@ function App() {
               <Stack.Screen name="FindPallet" component={FindPalletScreen} />
               <Stack.Screen name="Dispatch" component={DispatchScreen} />
               <Stack.Screen name="ExceptionReport" component={ExceptionReportScreen} />
+              <Stack.Screen name="FlagPallet" component={FlagPallet} />
             </Stack.Navigator>
           </NavigationContainer>
         </DoorMonitor>

@@ -1,0 +1,31 @@
+{
+    "requests": [
+        {
+            "id": "2e010c70-4438-4ddf-9714-b314c8cb48b9",
+            "pallet_id": "525400000000000001000007",
+            "type": "Damaged",
+            "status": "Rejected",
+            "requested_by": "Mobile App User",
+            "timestamp": "2026-08-27T15:20:31.310543",
+            "resolved_at": "2026-08-27T15:20:50.592134"
+        },
+        {
+            "id": "f0a25a23-7ca0-48cc-add3-a9076164562d",
+            "pallet_id": "525400000000000003000004",
+            "type": "Damaged",
+            "status": "Rejected",
+            "requested_by": "Mobile App User",
+            "timestamp": "2026-08-27T15:21:18.682409",
+            "resolved_at": "2026-08-27T15:21:29.072386"
+        },
+        {
+            "id": "004dda27-e830-4ae6-998a-24c40c1a97da",
+            "pallet_id": "525400000000000001000007",
+            "type": "Damaged",
+            "status": "Approved",
+            "requested_by": "Mobile App User",
+            "timestamp": "2026-08-27T15:22:14.426356",
+            "resolved_at": "2026-08-27T15:22:21.420788"
+        }
+    ]
+}

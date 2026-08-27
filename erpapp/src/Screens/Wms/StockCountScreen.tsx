@@ -25,6 +25,7 @@ interface ScannedItem {
   scannedContainerName: string | null;
   isCorrect: boolean;
   type: string;
+  is_reserved?: boolean;
 }
 
 const StockCountScreen = ({ navigation }: { navigation: any }) => {
@@ -74,7 +75,8 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
             expectedLocation: cleanExpected || json.location,
             scannedContainerName: activeContainer ? cleanActive : null,
             isCorrect: isCorrect,
-            type: json.type
+            type: json.type,
+            is_reserved: json.is_reserved
           }, ...prev]);
         } else {
           // Unknown tag

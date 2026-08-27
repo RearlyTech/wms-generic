@@ -1,0 +1,314 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import {
+  widthPercentageToDP as wp,
+  heightPercentageToDP as hp,
+} from 'react-native-responsive-screen';
+import { useBLE } from './Blecontext';
+import { useIsFocused } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/Feather';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import CustomStatusBar from '../common/customstatusbar';
+
+export default function FlagPallet({ navigation }: { navigation: any }) {
+  const isFocused = useIsFocused();
+  const { rfid, setRfid } = useBLE();
+  const [scannedTag, setScannedTag] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [requests, setRequests] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (isFocused && rfid) {
+      setScannedTag(rfid);
+    }
+  }, [rfid, isFocused]);
+
+  useEffect(() => {
+    if (isFocused) {
+      fetchRequests();
+    }
+  }, [isFocused]);
+
+  const fetchRequests = async () => {
+    try {
+      const res = await fetch('http://192.168.29.113:8000/wms/approval-requests');
+      const data = await res.json();
+      if (data && data.requests) {
+        // Sort newest first
+        setRequests(data.requests.reverse());
+      }
+    } catch (err) {
+      console.log('Error fetching requests', err);
+    }
+  };
+
+  const submitFlag = async (type: string) => {
+    if (!scannedTag) {
+      Alert.alert('Error', 'Please scan a pallet RFID tag first.');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const res = await fetch('http://192.168.29.113:8000/wms/approval-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pallet_id: scannedTag,
+          type: type,
+          requested_by: 'Mobile App User'
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        Alert.alert('Success', `Permission requested for ${type} pallet.`);
+        setScannedTag('');
+        setRfid('');
+        fetchRequests();
+      } else {
+        Alert.alert('Error', 'Failed to submit request.');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Network error.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <SafeAreaView style={{ backgroundColor: '#5A80FD' }} edges={['top']} />
+      <CustomStatusBar backgroundColor={'#5A80FD'} />
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Icon name="arrow-left" size={24} color="#fff" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Flag Pallet</Text>
+      </View>
+
+      <ScrollView style={styles.content}>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Scan Pallet RFID</Text>
+          <View style={styles.rfidContainer}>
+            <Icon name="radio" size={24} color={scannedTag ? '#4CAF50' : '#757575'} />
+            <Text style={[styles.rfidText, scannedTag && styles.rfidTextActive]}>
+              {scannedTag || 'Waiting for scan...'}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Select Flag Type</Text>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity 
+            style={[styles.flagButton, { backgroundColor: '#F44336' }]} 
+            onPress={() => submitFlag('Damaged')}
+            disabled={loading}
+          >
+            <Icon name="alert-triangle" size={24} color="#FFF" />
+            <Text style={styles.flagButtonText}>Damaged</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.flagButton, { backgroundColor: '#FF9800' }]} 
+            onPress={() => submitFlag('Expired')}
+            disabled={loading}
+          >
+            <Icon name="clock" size={24} color="#FFF" />
+            <Text style={styles.flagButtonText}>Expired</Text>
+          </TouchableOpacity>
+        </View>
+
+        {loading && <ActivityIndicator size="large" color="#3F51B5" style={{ marginTop: 20 }} />}
+
+        <View style={styles.historySection}>
+          <View style={styles.historyHeader}>
+            <Text style={styles.sectionTitle}>Request History</Text>
+            <TouchableOpacity onPress={fetchRequests}>
+              <Icon name="refresh-cw" size={20} color="#3F51B5" />
+            </TouchableOpacity>
+          </View>
+          
+          {requests.map(req => (
+            <View key={req.id} style={styles.historyCard}>
+              <View style={styles.historyRow}>
+                <Text style={styles.historyRfid}>{req.pallet_id}</Text>
+                <View style={[styles.badge, req.status === 'Approved' ? styles.badgeGreen : req.status === 'Rejected' ? styles.badgeRed : styles.badgeYellow]}>
+                  <Text style={styles.badgeText}>{req.status}</Text>
+                </View>
+              </View>
+              <View style={styles.historyRow}>
+                <Text style={styles.historyType}>{req.type}</Text>
+                <Text style={styles.historyDate}>{new Date(req.timestamp).toLocaleTimeString()}</Text>
+              </View>
+            </View>
+          ))}
+          {requests.length === 0 && (
+            <Text style={styles.emptyText}>No requests found.</Text>
+          )}
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F6FA',
+  },
+  header: {
+    backgroundColor: '#5A80FD',
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: hp(8),
+    paddingHorizontal: wp(4),
+    elevation: 4,
+  },
+  backButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 50,
+    padding: 6,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: wp(5.5),
+    fontWeight: '600',
+    marginLeft: wp(4),
+  },
+  content: {
+    flex: 1,
+    padding: 20,
+  },
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  rfidContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F5',
+    padding: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  rfidText: {
+    marginLeft: 15,
+    fontSize: 16,
+    color: '#757575',
+    fontFamily: 'monospace',
+  },
+  rfidTextActive: {
+    color: '#212121',
+    fontWeight: '700',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 15,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 15,
+  },
+  flagButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 12,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+  },
+  flagButtonText: {
+    color: '#FFF',
+    fontWeight: '700',
+    fontSize: 16,
+    marginLeft: 10,
+  },
+  historySection: {
+    marginTop: 30,
+    paddingBottom: 40,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  historyCard: {
+    backgroundColor: '#FFF',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3F51B5',
+    elevation: 1,
+  },
+  historyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  historyRfid: {
+    fontWeight: '700',
+    fontFamily: 'monospace',
+    color: '#333',
+  },
+  historyType: {
+    color: '#666',
+    fontWeight: '600',
+  },
+  historyDate: {
+    fontSize: 12,
+    color: '#999',
+  },
+  badge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  badgeGreen: { backgroundColor: '#E8F5E9' },
+  badgeRed: { backgroundColor: '#FFEBEE' },
+  badgeYellow: { backgroundColor: '#FFF3E0' },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    fontStyle: 'italic',
+    marginTop: 20,
+  },
+});

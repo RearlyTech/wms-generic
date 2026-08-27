@@ -16,6 +16,9 @@ import CustomStatusBar from '../common/customstatusbar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBLE } from './Blecontext';
 import { useIsFocused } from '@react-navigation/native';
+import Sound from 'react-native-sound';
+
+Sound.setCategory('Playback');
 
 const { width } = Dimensions.get('window');
 
@@ -100,6 +103,14 @@ const WMS_ACTIONS = [
     route: 'ExceptionReport',
     color: '#F44336',
   },
+  {
+    id: 'flag_pallet',
+    title: 'Flag Pallet',
+    description: 'Mark pallet as damaged or expired',
+    icon: 'flag',
+    route: 'FlagPallet',
+    color: '#FF9800',
+  }
 ];
 
 const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) => {
@@ -113,6 +124,50 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
       setScannedTag(rfid);
     }
   }, [rfid, isFocused]);
+
+  const [alerts, setAlerts] = useState<string[]>([]);
+  
+  useEffect(() => {
+    if (!isFocused) return;
+    const fetchAlarms = async () => {
+      try {
+        const [thRes, tempRes, energyRes] = await Promise.all([
+          fetch('http://192.168.29.113:8000/wms/thresholds'),
+          fetch('http://192.168.29.113:8000/api/temperature/live'),
+          fetch('http://192.168.29.113:8000/api/energy/live'),
+        ]);
+
+        const thresholds = await thRes.json();
+        const tempData = await tempRes.json();
+        const energyData = await energyRes.json();
+
+        let newAlerts: string[] = [];
+        if (tempData.success && tempData.values) {
+          if (tempData.values.temperature > thresholds.temperature) {
+            newAlerts.push(`High Temp: ${tempData.values.temperature}°C`);
+          }
+          if (tempData.values.humidity > thresholds.humidity) {
+            newAlerts.push(`High Humidity: ${tempData.values.humidity}%`);
+          }
+        }
+        if (energyData.success && energyData.values) {
+          if (energyData.values.activeEnergy > thresholds.energy) {
+            newAlerts.push(`High Energy: ${energyData.values.activeEnergy}kWh`);
+          }
+        }
+
+        setAlerts(newAlerts);
+      } catch (err) {
+        console.warn("Failed to fetch alarms", err);
+      }
+    };
+    
+    fetchAlarms();
+    const interval = setInterval(fetchAlarms, 10000);
+    return () => {
+      clearInterval(interval);
+    };
+  }, [isFocused]);
 
   // Update scannedTag if navigation parameter changes
   useEffect(() => {
@@ -144,6 +199,17 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
         </TouchableOpacity>
         <Text style={styles.headerText}>WMS Actions</Text>
       </View>
+
+      {/* ALERTS */}
+      {alerts.length > 0 && (
+        <View style={styles.alertCard}>
+          <Icon name="alert-triangle" size={24} color="#D32F2F" />
+          <View style={{ marginLeft: 10, flex: 1 }}>
+            <Text style={styles.alertTitle}>Threshold Exceeded!</Text>
+            {alerts.map((a, i) => <Text key={i} style={styles.alertText}>• {a}</Text>)}
+          </View>
+        </View>
+      )}
 
       {/* ACTIVE TAG CARD */}
       {scannedTag ? (
@@ -298,6 +364,29 @@ const styles = StyleSheet.create({
   },
   activeTagClear: {
     padding: 4,
+  },
+  alertCard: {
+    backgroundColor: '#FFEBEE',
+    borderWidth: 1,
+    borderColor: '#EF5350',
+    borderRadius: wp(3),
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.5),
+    marginHorizontal: wp(4),
+    marginTop: hp(2),
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  alertTitle: {
+    fontSize: wp(4),
+    fontWeight: 'bold',
+    color: '#B71C1C',
+    marginBottom: 4,
+  },
+  alertText: {
+    fontSize: wp(3.5),
+    color: '#D32F2F',
+    fontWeight: '500',
   },
 });
 
