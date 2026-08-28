@@ -162,7 +162,7 @@ export default function DoorMonitor({ children }: { children: React.ReactNode })
       >
         <View style={styles.modalBackground}>
           <View style={styles.alertBox}>
-            <Icon name="warning" size={64} color="#E11D48" style={{ marginBottom: 16 }} />
+            <Icon name="warning" size={64} color="#e0654f" style={{ marginBottom: 16 }} />
             <Text style={styles.alertTitle}>EMERGENCY ALARM</Text>
             <Text style={styles.alertMessage}>{alertMessage}</Text>
           </View>
@@ -186,19 +186,19 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#E11D48',
+    borderColor: '#e0654f',
     width: '100%',
     maxWidth: 400,
   },
   alertTitle: {
-    fontSize: 28,
+    fontFamily: 'Archivo', fontSize: 28,
     fontWeight: '900',
-    color: '#E11D48',
+    color: '#e0654f',
     marginBottom: 8,
   },
   alertMessage: {
-    fontSize: 18,
-    color: '#9F1239',
+    fontFamily: 'Archivo', fontSize: 18,
+    color: '#e0654f',
     textAlign: 'center',
     fontWeight: '500',
     lineHeight: 24,

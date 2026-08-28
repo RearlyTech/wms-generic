@@ -172,20 +172,20 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
 
   return (
     <View style={styles.root}>
-      <SafeAreaView style={{ backgroundColor: '#5A80FD' }} edges={['top']} />
-      <CustomStatusBar backgroundColor={'#5A80FD'} />
+      <SafeAreaView style={{ backgroundColor: '#3fbf75' }} edges={['top']} />
+      <CustomStatusBar backgroundColor={'#3fbf75'} />
 
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-left" size={24} color="#fff" />
+          <Icon name="arrow-left" size={24} color="#ecf1f4" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Repack Pallet</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.instructionCard}>
-          <Icon name="info" size={20} color="#5A80FD" style={{ marginRight: 8 }} />
+          <Icon name="info" size={20} color="#3fbf75" style={{ marginRight: 8 }} />
           <Text style={styles.instructionText}>
             Select or scan a pallet, verify actual stock details, and consume quantity for repacking.
           </Text>
@@ -194,17 +194,17 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
         <View style={styles.card}>
           <Text style={styles.label}>Select / Scan Pallet</Text>
           {loadingWarehouses ? (
-            <ActivityIndicator color="#5A80FD" style={{ marginVertical: hp(1) }} />
+            <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1) }} />
           ) : (
             <TouchableOpacity
               style={styles.dropdownHeader}
               onPress={() => setShowBinDropdown(!showBinDropdown)}
             >
-              <Icon name="archive" size={18} color="#999" style={{ marginRight: 8 }} />
-              <Text style={{ flex: 1, color: scannedRfid ? '#333' : '#999', fontSize: wp(4) }}>
+              <Icon name="archive" size={18} color="#62788a" style={{ marginRight: 8 }} />
+              <Text style={{ flex: 1, color: scannedRfid ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
                 {scannedRfid || 'Select/Scan Pallet...'}
               </Text>
-              <Icon name={showBinDropdown ? "chevron-up" : "chevron-down"} size={20} color="#555" />
+              <Icon name={showBinDropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
             </TouchableOpacity>
           )}
 
@@ -228,7 +228,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
           )}
 
           {loadingItem && (
-            <ActivityIndicator color="#5A80FD" style={{ marginVertical: hp(1.5) }} />
+            <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1.5) }} />
           )}
 
           {itemName && !loadingItem ? (
@@ -249,24 +249,24 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
             Amount Consumed / Used ({itemUom})
           </Text>
           <View style={styles.inputContainer}>
-            <Icon name="edit-3" size={18} color="#999" style={styles.inputIcon} />
+            <Icon name="edit-3" size={18} color="#62788a" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Enter weight/qty used"
               value={amountUsed}
               onChangeText={setAmountUsed}
               keyboardType="numeric"
-              placeholderTextColor="#999"
+              placeholderTextColor="#62788a"
             />
           </View>
 
           {/* Live Remaining Calculation for Repack */}
           {originalWeight !== null && amountUsed && parseFloat(amountUsed) > 0 && (
             <View style={styles.calcRow}>
-              <Icon name="pie-chart" size={16} color="#666" style={{ marginRight: 6 }} />
+              <Icon name="pie-chart" size={16} color="#9db0bd" style={{ marginRight: 6 }} />
               <Text style={styles.calcText}>
                 Remaining after repack:{' '}
-                <Text style={{ fontWeight: '700', color: '#5A80FD' }}>
+                <Text style={{ fontWeight: '700', color: '#3fbf75' }}>
                   {Math.max(0, originalWeight - parseFloat(amountUsed)).toFixed(2)} {itemUom}
                 </Text>
               </Text>
@@ -278,17 +278,17 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
             <>
               <Text style={styles.label}>Scan/Enter New RFID Tag (Optional)</Text>
               <View style={styles.inputContainer}>
-                <Icon name="tag" size={18} color="#999" style={styles.inputIcon} />
+                <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Scan or enter new RFID tag..."
                   value={newRfid}
                   editable={false}
-                  placeholderTextColor="#999"
+                  placeholderTextColor="#62788a"
                 />
                 {newRfid ? (
                   <TouchableOpacity onPress={() => setNewRfid('')}>
-                    <Icon name="x" size={18} color="#999" />
+                    <Icon name="x" size={18} color="#62788a" />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -301,7 +301,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#0a0f16" />
             ) : (
               <Text style={styles.primaryButtonText}>Confirm Repack (Issue)</Text>
             )}
@@ -310,7 +310,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
 
         {successMessage && (
           <View style={styles.successCard}>
-            <Icon name="check-circle" size={24} color="#4CAF50" style={{ marginRight: 10 }} />
+            <Icon name="check-circle" size={24} color="#3fbf75" style={{ marginRight: 10 }} />
             <Text style={styles.successText}>{successMessage}</Text>
           </View>
         )}
@@ -323,7 +323,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
               placeholder="Enter Tag ID or Bin name to simulate scan"
               value={simulatedRfid}
               onChangeText={setSimulatedRfid}
-              placeholderTextColor="#999"
+              placeholderTextColor="#62788a"
             />
             <TouchableOpacity style={styles.simButton} onPress={handleSimulateScan}>
               <Text style={styles.simButtonText}>Simulate</Text>
@@ -338,10 +338,10 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#121b26',
   },
   header: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     flexDirection: 'row',
     alignItems: 'center',
     height: hp(8),
@@ -349,13 +349,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   backButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#18242f',
     borderRadius: 50,
     padding: 6,
   },
   headerText: {
-    color: '#fff',
-    fontSize: wp(5.5),
+    color: '#ecf1f4',
+    fontFamily: 'Archivo', fontSize: wp(5.5),
     fontWeight: '600',
     marginLeft: wp(4),
   },
@@ -376,23 +376,23 @@ const styles = StyleSheet.create({
     borderRadius: wp(2.5),
   },
   activeTabButton: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     elevation: 2,
   },
   tabButtonText: {
-    color: '#5A80FD',
+    color: '#3fbf75',
     fontWeight: '700',
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
   },
   activeTabButtonText: {
-    color: '#fff',
+    color: '#ecf1f4',
   },
   container: {
     padding: wp(4),
     paddingBottom: hp(5),
   },
   instructionCard: {
-    backgroundColor: '#EBF0FF',
+    backgroundColor: '#18242f',
     borderRadius: wp(3),
     padding: wp(4),
     flexDirection: 'row',
@@ -400,34 +400,34 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   instructionText: {
-    color: '#3F51B5',
-    fontSize: wp(3.8),
+    color: '#3fbf75',
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '500',
     flex: 1,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: wp(4),
     padding: wp(5),
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     marginBottom: hp(3),
   },
   label: {
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
-    color: '#555',
+    color: '#9db0bd',
     marginBottom: hp(0.8),
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#121b26',
     borderRadius: wp(3),
     paddingHorizontal: wp(3.5),
     marginBottom: hp(2),
@@ -438,31 +438,31 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     paddingVertical: hp(1.4),
-    fontSize: wp(4),
-    color: '#333',
+    fontFamily: 'Archivo', fontSize: wp(4),
+    color: '#ecf1f4',
   },
   dropdownHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#121b26',
     borderRadius: wp(3),
     paddingHorizontal: wp(3.5),
     paddingVertical: hp(1.4),
     marginBottom: hp(2),
   },
   dropdownListContainer: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#121b26',
     borderRadius: wp(3),
     marginTop: -hp(1.5),
     marginBottom: hp(2),
     maxHeight: hp(20),
     overflow: 'hidden',
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -471,15 +471,15 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.2),
     paddingHorizontal: wp(4),
     borderBottomWidth: 0.5,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#121b26',
   },
   dropdownListItemText: {
-    fontSize: wp(3.8),
-    color: '#333',
+    fontFamily: 'Archivo', fontSize: wp(3.8),
+    color: '#ecf1f4',
     fontWeight: '500',
   },
   detailsBlock: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#121b26',
     borderRadius: wp(2.5),
     padding: wp(3.5),
     marginBottom: hp(2.5),
@@ -489,14 +489,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   detailLabel: {
-    fontSize: wp(3.6),
+    fontFamily: 'Archivo', fontSize: wp(3.6),
     fontWeight: '600',
-    color: '#666',
+    color: '#9db0bd',
   },
   detailVal: {
-    fontSize: wp(3.6),
+    fontFamily: 'Archivo', fontSize: wp(3.6),
     fontWeight: '700',
-    color: '#333',
+    color: '#ecf1f4',
   },
   calcRow: {
     flexDirection: 'row',
@@ -504,11 +504,11 @@ const styles = StyleSheet.create({
     marginBottom: hp(2.5),
   },
   calcText: {
-    fontSize: wp(3.6),
-    color: '#666',
+    fontFamily: 'Archivo', fontSize: wp(3.6),
+    color: '#9db0bd',
   },
   primaryButton: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     borderRadius: wp(3),
     paddingVertical: hp(1.8),
     alignItems: 'center',
@@ -516,56 +516,56 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   primaryButtonText: {
-    color: '#fff',
-    fontSize: wp(4.2),
+    color: '#0a0f16',
+    fontFamily: 'Archivo', fontSize: wp(4.2),
     fontWeight: '700',
   },
   disabledButton: {
-    backgroundColor: '#A0B6FF',
+    backgroundColor: '#3fbf75',
     elevation: 0,
   },
   successCard: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#3fbf75',
     borderRadius: wp(3),
     padding: wp(4),
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: hp(3),
     borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
+    borderLeftColor: '#3fbf75',
   },
   successText: {
-    color: '#2E7D32',
-    fontSize: wp(3.8),
+    color: '#3fbf75',
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
     flex: 1,
   },
   simCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: wp(4),
     padding: wp(5),
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#5A80FD',
+    borderColor: '#3fbf75',
   },
   simTitle: {
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '700',
-    color: '#5A80FD',
+    color: '#3fbf75',
     marginBottom: hp(1.5),
   },
   simButton: {
-    backgroundColor: '#EBF0FF',
+    backgroundColor: '#18242f',
     paddingHorizontal: wp(4),
     paddingVertical: hp(1),
     borderRadius: wp(2),
     borderWidth: 1,
-    borderColor: '#5A80FD',
+    borderColor: '#3fbf75',
   },
   simButtonText: {
-    color: '#5A80FD',
+    color: '#3fbf75',
     fontWeight: '700',
-    fontSize: wp(3.5),
+    fontFamily: 'Archivo', fontSize: wp(3.5),
   },
 });
 

@@ -29,7 +29,7 @@ const WMS_ACTIONS = [
     description: 'Assign scanned RFID items to a storage pallet',
     icon: 'plus-circle',
     route: 'ReceivePallet',
-    color: '#4CAF50',
+    color: '#3fbf75',
   },
   {
     id: 'putaway',
@@ -37,7 +37,7 @@ const WMS_ACTIONS = [
     description: 'Assign storage bin to a rack/shelf location',
     icon: 'arrow-down-circle',
     route: 'PutAway',
-    color: '#3F51B5',
+    color: '#3fbf75',
   },
   // {
   //   id: 'retrieve',
@@ -45,7 +45,7 @@ const WMS_ACTIONS = [
   //   description: 'Retrieve items from a storage bin',
   //   icon: 'arrow-up-circle',
   //   route: 'Retrieve',
-  //   color: '#FF9800',
+  //   color: '#d9933f',
   // },
   {
     id: 'move',
@@ -101,7 +101,7 @@ const WMS_ACTIONS = [
     description: 'Report issues with bins, racks, or shelves',
     icon: 'alert-triangle',
     route: 'ExceptionReport',
-    color: '#F44336',
+    color: '#e0654f',
   },
   {
     id: 'flag_pallet',
@@ -109,7 +109,7 @@ const WMS_ACTIONS = [
     description: 'Mark pallet as damaged or expired',
     icon: 'flag',
     route: 'FlagPallet',
-    color: '#FF9800',
+    color: '#d9933f',
   }
 ];
 
@@ -126,7 +126,7 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
   }, [rfid, isFocused]);
 
   const [alerts, setAlerts] = useState<string[]>([]);
-  
+
   useEffect(() => {
     if (!isFocused) return;
     const fetchAlarms = async () => {
@@ -161,7 +161,7 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
         console.warn("Failed to fetch alarms", err);
       }
     };
-    
+
     fetchAlarms();
     const interval = setInterval(fetchAlarms, 10000);
     return () => {
@@ -186,8 +186,8 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
 
   return (
     <View style={styles.root}>
-      <SafeAreaView style={{ backgroundColor: '#5A80FD' }} edges={['top']} />
-      <CustomStatusBar backgroundColor={'#5A80FD'} />
+      <SafeAreaView style={{ backgroundColor: '#3fbf75' }} edges={['top']} />
+      <CustomStatusBar backgroundColor={'#3fbf75'} />
 
       {/* HEADER */}
       <View style={styles.header}>
@@ -195,7 +195,7 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
           onPress={() => navigation.navigate('Scan')}
           style={styles.backButton}
         >
-          <Icon name="arrow-left" size={24} color="#fff" />
+          <Icon name="arrow-left" size={24} color="#ecf1f4" />
         </TouchableOpacity>
         <Text style={styles.headerText}>WMS Actions</Text>
       </View>
@@ -203,7 +203,7 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
       {/* ALERTS */}
       {alerts.length > 0 && (
         <View style={styles.alertCard}>
-          <Icon name="alert-triangle" size={24} color="#D32F2F" />
+          <Icon name="alert-triangle" size={24} color="#e0654f" />
           <View style={{ marginLeft: 10, flex: 1 }}>
             <Text style={styles.alertTitle}>Threshold Exceeded!</Text>
             {alerts.map((a, i) => <Text key={i} style={styles.alertText}>• {a}</Text>)}
@@ -215,14 +215,14 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
       {scannedTag ? (
         <View style={styles.activeTagCard}>
           <View style={styles.activeTagLeft}>
-            <Icon name="tag" size={20} color="#5A80FD" />
+            <Icon name="tag" size={20} color="#3fbf75" />
             <View style={{ marginLeft: wp(2.5) }}>
               <Text style={styles.activeTagLabel}>Active Scanned Tag</Text>
               <Text style={styles.activeTagValue} numberOfLines={1}>{scannedTag}</Text>
             </View>
           </View>
           <TouchableOpacity onPress={() => setScannedTag('')} style={styles.activeTagClear}>
-            <Icon name="x" size={18} color="#999" />
+            <Icon name="x" size={18} color="#62788a" />
           </TouchableOpacity>
         </View>
       ) : null}
@@ -245,7 +245,7 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
               <Text style={styles.cardTitle}>{action.title}</Text>
               <Text style={styles.cardDesc} numberOfLines={2}>{action.description}</Text>
               <View style={styles.arrowContainer}>
-                <Icon name="chevron-right" size={16} color="#999" />
+                <Icon name="chevron-right" size={16} color="#62788a" />
               </View>
             </TouchableOpacity>
           ))}
@@ -258,10 +258,10 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#121b26',
   },
   header: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     flexDirection: 'row',
     alignItems: 'center',
     height: hp(8),
@@ -269,13 +269,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   backButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#18242f',
     borderRadius: 50,
     padding: 6,
   },
   headerText: {
-    color: '#fff',
-    fontSize: wp(5.5),
+    color: '#ecf1f4',
+    fontFamily: 'Archivo', fontSize: wp(5.5),
     fontWeight: '600',
     marginLeft: wp(4),
   },
@@ -284,9 +284,9 @@ const styles = StyleSheet.create({
     paddingBottom: hp(5),
   },
   subtitle: {
-    fontSize: wp(4),
+    fontFamily: 'Archivo', fontSize: wp(4),
     fontWeight: '500',
-    color: '#666',
+    color: '#9db0bd',
     marginBottom: hp(2),
   },
   grid: {
@@ -295,13 +295,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     width: (width - wp(12)) / 2,
     borderRadius: wp(3.5),
     padding: wp(4),
     marginBottom: hp(2),
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -316,14 +316,14 @@ const styles = StyleSheet.create({
     marginBottom: hp(1.2),
   },
   cardTitle: {
-    fontSize: wp(4.2),
+    fontFamily: 'Archivo', fontSize: wp(4.2),
     fontWeight: '700',
-    color: '#333',
+    color: '#ecf1f4',
     marginBottom: hp(0.5),
   },
   cardDesc: {
-    fontSize: wp(3.2),
-    color: '#777',
+    fontFamily: 'Archivo', fontSize: wp(3.2),
+    color: '#9db0bd',
     lineHeight: hp(1.8),
     marginBottom: hp(1.5),
   },
@@ -336,14 +336,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#EBF0FF',
+    backgroundColor: '#18242f',
     borderRadius: wp(3),
     paddingHorizontal: wp(4),
     paddingVertical: hp(1.5),
     marginHorizontal: wp(4),
     marginTop: hp(2),
     borderWidth: 1.5,
-    borderColor: '#A4BCFF',
+    borderColor: '#3fbf75',
   },
   activeTagLeft: {
     flexDirection: 'row',
@@ -351,22 +351,22 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activeTagLabel: {
-    fontSize: wp(3.2),
+    fontFamily: 'Archivo', fontSize: wp(3.2),
     fontWeight: '700',
-    color: '#5A80FD',
+    color: '#3fbf75',
     textTransform: 'uppercase',
   },
   activeTagValue: {
-    fontSize: wp(4),
+    fontFamily: 'Archivo', fontSize: wp(4),
     fontWeight: '700',
-    color: '#1A237E',
+    color: '#3fbf75',
     marginTop: 2,
   },
   activeTagClear: {
     padding: 4,
   },
   alertCard: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: '#e0654f',
     borderWidth: 1,
     borderColor: '#EF5350',
     borderRadius: wp(3),
@@ -378,14 +378,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   alertTitle: {
-    fontSize: wp(4),
+    fontFamily: 'Archivo', fontSize: wp(4),
     fontWeight: 'bold',
-    color: '#B71C1C',
+    color: '#ffffff',
     marginBottom: 4,
   },
   alertText: {
-    fontSize: wp(3.5),
-    color: '#D32F2F',
+    color: '#ffffff',
+    fontFamily: 'Archivo', fontSize: wp(3.5),
     fontWeight: '500',
   },
 });

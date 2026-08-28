@@ -118,13 +118,13 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
 
   return (
     <View style={styles.root}>
-      <SafeAreaView style={{ backgroundColor: '#5A80FD' }} edges={['top']} />
-      <CustomStatusBar backgroundColor={'#5A80FD'} />
+      <SafeAreaView style={{ backgroundColor: '#3fbf75' }} edges={['top']} />
+      <CustomStatusBar backgroundColor={'#3fbf75'} />
 
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-left" size={24} color="#fff" />
+          <Icon name="arrow-left" size={24} color="#ecf1f4" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Stock Count</Text>
       </View>
@@ -134,7 +134,7 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
         {/* CONNECTION BADGE */}
         <View style={styles.statusRow}>
           <View style={styles.connectionBadge}>
-            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#4CAF50' : '#E53935' }]} />
+            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : '#e0654f' }]} />
             <Text style={styles.connectionText}>
               {connectedDevice ? 'Scanner Active' : 'Scanner Disconnected'}
             </Text>
@@ -143,7 +143,7 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
 
         {/* INSTRUCTIONS */}
         <View style={styles.instructionCard}>
-          <Icon name="info" size={24} color="#5A80FD" style={{ marginRight: 12 }} />
+          <Icon name="info" size={24} color="#3fbf75" style={{ marginRight: 12 }} />
           <Text style={styles.instructionText}>
             Step 1: Scan a Bin or Pallet RFID.{'\n'}
             Step 2: Scan Item RFIDs to verify location.
@@ -153,7 +153,7 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
         {/* ACTIVE CONTAINER CARD */}
         <View style={styles.activeContainerCard}>
           <View style={styles.activeContainerHeader}>
-            <Icon name="box" size={24} color={activeContainer ? '#5A80FD' : '#A0AEC0'} />
+            <Icon name="box" size={24} color={activeContainer ? '#3fbf75' : '#A0AEC0'} />
             <Text style={styles.activeContainerTitle}>Active Location (Bin/Pallet)</Text>
           </View>
           {activeContainer ? (
@@ -182,7 +182,7 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
 
           {isResolving && (
             <View style={styles.loaderRow}>
-              <ActivityIndicator size="small" color="#5A80FD" />
+              <ActivityIndicator size="small" color="#3fbf75" />
               <Text style={styles.loaderText}>Resolving tag...</Text>
             </View>
           )}
@@ -199,9 +199,9 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
                 >
                   <View style={styles.rowIconContainer}>
                     {isCorrect ? (
-                      <Icon name="check-circle" size={32} color="#4CAF50" />
+                      <Icon name="check-circle" size={32} color="#3fbf75" />
                     ) : (
-                      <Icon name="x-circle" size={32} color="#E53935" />
+                      <Icon name="x-circle" size={32} color="#e0654f" />
                     )}
                   </View>
                   <View style={styles.rowContent}>
@@ -284,10 +284,10 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#121b26',
   },
   header: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     flexDirection: 'row',
     alignItems: 'center',
     height: hp(8),
@@ -295,13 +295,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   backButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#18242f',
     borderRadius: 50,
     padding: 6,
   },
   headerText: {
-    color: '#fff',
-    fontSize: wp(5.5),
+    color: '#ecf1f4',
+    fontFamily: 'Archivo', fontSize: wp(5.5),
     fontWeight: '600',
     marginLeft: wp(4),
   },
@@ -315,14 +315,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   connectionBadge: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: 50,
     paddingHorizontal: wp(4),
     paddingVertical: hp(1),
     flexDirection: 'row',
     alignItems: 'center',
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -334,14 +334,14 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   connectionText: {
-    fontSize: wp(3.5),
+    fontFamily: 'Archivo', fontSize: wp(3.5),
     color: '#4A5568',
     fontWeight: '700',
   },
   instructionCard: {
-    backgroundColor: '#EBF0FF',
+    backgroundColor: '#18242f',
     borderLeftWidth: 5,
-    borderLeftColor: '#5A80FD',
+    borderLeftColor: '#3fbf75',
     borderRadius: wp(3),
     padding: wp(5),
     flexDirection: 'row',
@@ -350,24 +350,24 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   instructionText: {
-    color: '#3F51B5',
-    fontSize: wp(4.5),
+    color: '#3fbf75',
+    fontFamily: 'Archivo', fontSize: wp(4.5),
     fontWeight: '600',
     lineHeight: hp(3),
     flex: 1,
   },
   activeContainerCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: wp(4),
     padding: wp(5),
     marginBottom: hp(3),
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
     borderTopWidth: 6,
-    borderTopColor: '#5A80FD',
+    borderTopColor: '#3fbf75',
   },
   activeContainerHeader: {
     flexDirection: 'row',
@@ -375,54 +375,54 @@ const styles = StyleSheet.create({
     marginBottom: hp(1.5),
   },
   activeContainerTitle: {
-    fontSize: wp(5),
+    fontFamily: 'Archivo', fontSize: wp(5),
     fontWeight: '800',
     color: '#2D3748',
     marginLeft: wp(3),
   },
   activeContainerDetails: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#3fbf75',
     padding: wp(4),
     borderRadius: wp(3),
     borderWidth: 1,
-    borderColor: '#C8E6C9',
+    borderColor: '#3fbf75',
   },
   activeContainerName: {
-    fontSize: wp(6),
+    fontFamily: 'Archivo', fontSize: wp(6),
     fontWeight: '800',
-    color: '#1B5E20',
+    color: '#3fbf75',
     marginBottom: hp(0.5),
   },
   activeContainerRfid: {
-    fontSize: wp(3.8),
-    color: '#388E3C',
+    fontFamily: 'Archivo', fontSize: wp(3.8),
+    color: '#3fbf75',
     fontWeight: '600',
   },
   emptyContainerState: {
     alignItems: 'center',
     paddingVertical: hp(2),
-    backgroundColor: '#F7FAFC',
+    backgroundColor: '#121b26',
     borderRadius: wp(3),
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderStyle: 'dashed',
   },
   emptyContainerText: {
-    fontSize: wp(4.5),
+    fontFamily: 'Archivo', fontSize: wp(4.5),
     fontWeight: '700',
     color: '#718096',
     marginBottom: hp(0.5),
   },
   emptyContainerSubtext: {
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     color: '#A0AEC0',
   },
   historyCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: wp(4),
     padding: wp(5),
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   historyTitle: {
-    fontSize: wp(5.5),
+    fontFamily: 'Archivo', fontSize: wp(5.5),
     fontWeight: '800',
     color: '#2D3748',
   },
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   clearText: {
     color: '#C53030',
     fontWeight: '800',
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
   },
   loaderRow: {
     flexDirection: 'row',
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     marginLeft: wp(3),
-    fontSize: wp(4),
+    fontFamily: 'Archivo', fontSize: wp(4),
     color: '#4A5568',
     fontWeight: '600',
   },
@@ -476,11 +476,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rowCorrect: {
-    backgroundColor: '#E8F5E9',
-    borderColor: '#A5D6A7',
+    backgroundColor: '#3fbf75',
+    borderColor: '#3fbf75',
   },
   rowIncorrect: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: '#e0654f',
     borderColor: '#EF9A9A',
   },
   rowIconContainer: {
@@ -490,30 +490,30 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemName: {
-    fontSize: wp(5),
+    fontFamily: 'Archivo', fontSize: wp(5),
     fontWeight: '800',
     color: '#2D3748',
     marginBottom: hp(0.3),
   },
   itemRfid: {
-    fontSize: wp(3.5),
+    fontFamily: 'Archivo', fontSize: wp(3.5),
     color: '#718096',
     fontWeight: '600',
     marginBottom: hp(0.5),
   },
   locationMismatchContainer: {
-    backgroundColor: '#FFEBEE',
+    backgroundColor: '#e0654f',
     padding: wp(2),
     borderRadius: wp(1.5),
     marginTop: hp(0.5),
   },
   locationMismatchText: {
-    fontSize: wp(3.5),
-    color: '#C62828',
+    fontFamily: 'Archivo', fontSize: wp(3.5),
+    color: '#ffffff',
   },
   locationMatchText: {
-    fontSize: wp(3.8),
-    color: '#2E7D32',
+    fontFamily: 'Archivo', fontSize: wp(3.8),
+    color: '#3fbf75',
   },
   boldText: {
     fontWeight: '800',
@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
   emptyHistoryText: {
     textAlign: 'center',
     paddingVertical: hp(4),
-    fontSize: wp(4.5),
+    fontFamily: 'Archivo', fontSize: wp(4.5),
     color: '#A0AEC0',
     fontWeight: '600',
     fontStyle: 'italic',
@@ -534,12 +534,12 @@ const styles = StyleSheet.create({
     padding: wp(5),
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: wp(5),
     width: wp(90),
     padding: wp(6),
     elevation: 10,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.3,
     shadowRadius: 15,
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   modalTitle: {
-    fontSize: wp(6),
+    fontFamily: 'Archivo', fontSize: wp(6),
     fontWeight: '900',
     color: '#2D3748',
   },
@@ -568,7 +568,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2.5),
   },
   detailLabel: {
-    fontSize: wp(3.5),
+    fontFamily: 'Archivo', fontSize: wp(3.5),
     fontWeight: '800',
     color: '#718096',
     textTransform: 'uppercase',
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(0.5),
   },
   detailValue: {
-    fontSize: wp(5),
+    fontFamily: 'Archivo', fontSize: wp(5),
     fontWeight: '700',
     color: '#2D3748',
   },

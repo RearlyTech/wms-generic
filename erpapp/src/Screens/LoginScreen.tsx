@@ -39,7 +39,7 @@ export default function LoginScreen({ navigation }: any) {
       <TextInput
         style={styles.input}
         placeholder="Email"
-        placeholderTextColor="#999"
+        placeholderTextColor="#62788a"
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
@@ -49,7 +49,7 @@ export default function LoginScreen({ navigation }: any) {
       <TextInput
         style={styles.input}
         placeholder="Password"
-        placeholderTextColor="#999"
+        placeholderTextColor="#62788a"
         value={password}
         onChangeText={setPassword}
         secureTextEntry
@@ -57,7 +57,7 @@ export default function LoginScreen({ navigation }: any) {
 
       <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color="#0a0f16" />
         ) : (
           <Text style={styles.buttonText}>Login</Text>
         )}
@@ -69,27 +69,27 @@ export default function LoginScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
   title: {
-    fontSize: 34,
+    fontFamily: 'Archivo', fontSize: 34,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#ecf1f4',
     marginBottom: 8,
     textAlign: 'center',
     letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#64748B',
+    fontFamily: 'Archivo', fontSize: 16,
+    color: '#9db0bd',
     marginBottom: 40,
     textAlign: 'center',
   },
   errorText: {
-    color: '#D32F2F',
-    backgroundColor: '#FFEBEE',
+    color: '#ffffff',
+    backgroundColor: '#e0654f',
     padding: 14,
     borderRadius: 8,
     marginBottom: 20,
@@ -98,35 +98,35 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   input: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#283845',
     borderRadius: 14,
     padding: 16,
-    fontSize: 16,
+    fontFamily: 'Archivo', fontSize: 16,
     marginBottom: 16,
-    color: '#333',
+    color: '#ecf1f4',
     elevation: 1,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
   },
   button: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     paddingVertical: 18,
     borderRadius: 14,
     alignItems: 'center',
     marginTop: 12,
     elevation: 3,
-    shadowColor: '#5A80FD',
+    shadowColor: '#3fbf75',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
   },
   buttonText: {
-    color: '#FFF',
-    fontSize: 18,
+    color: '#ecf1f4',
+    fontFamily: 'Archivo', fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.5,
   },

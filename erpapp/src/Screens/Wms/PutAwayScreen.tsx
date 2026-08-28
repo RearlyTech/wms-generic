@@ -191,13 +191,13 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
 
   return (
     <View style={styles.root}>
-      <SafeAreaView style={{ backgroundColor: '#5A80FD' }} edges={['top']} />
-      <CustomStatusBar backgroundColor={'#5A80FD'} />
+      <SafeAreaView style={{ backgroundColor: '#3fbf75' }} edges={['top']} />
+      <CustomStatusBar backgroundColor={'#3fbf75'} />
 
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-left" size={24} color="#fff" />
+          <Icon name="arrow-left" size={24} color="#ecf1f4" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Put Away Pallet</Text>
       </View>
@@ -209,7 +209,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           {/* INSTRUCTIONS */}
           <View style={styles.instructionCard}>
-            <Icon name="info" size={20} color="#5A80FD" style={{ marginRight: 8 }} />
+            <Icon name="info" size={20} color="#3fbf75" style={{ marginRight: 8 }} />
             <Text style={styles.instructionText}>
               {scanStep === 'pallet'
                 ? 'Scan the Pallet RFID tag to check vacant slot recommendations.'
@@ -220,7 +220,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
 
           <View style={styles.statusRow}>
             <View style={styles.connectionBadge}>
-              <View style={[styles.dot, { backgroundColor: connectedDevice ? '#4CAF50' : '#E53935' }]} />
+              <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : '#e0654f' }]} />
               <Text style={styles.connectionText}>
                 {connectedDevice ? 'Scanner Connected' : 'Scanner Disconnected'}
               </Text>
@@ -230,7 +230,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
           <View style={styles.card}>
             <Text style={styles.label}>Scanned Pallet RFID</Text>
             <View style={styles.inputContainer}>
-              <Icon name="tag" size={18} color="#999" style={styles.inputIcon} />
+              <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Scan or enter Pallet RFID..."
@@ -240,7 +240,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
                   setPalletRfid(text);
                   if (text) setScanStep('bin');
                 }}
-                placeholderTextColor="#999"
+                placeholderTextColor="#62788a"
               />
               {palletRfid ? (
                 <TouchableOpacity onPress={() => {
@@ -250,7 +250,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
                   setIsBinVerified(null);
                   setScanStep('pallet');
                 }}>
-                  <Icon name="rotate-ccw" size={18} color="#5A80FD" />
+                  <Icon name="rotate-ccw" size={18} color="#3fbf75" />
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -269,7 +269,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
               <Icon
                 name={isManual ? "check-square" : "square"}
                 size={22}
-                color={isManual ? "#5A80FD" : "#999"}
+                color={isManual ? "#3fbf75" : "#62788a"}
                 style={{ marginRight: 8 }}
               />
               <Text style={styles.checkboxLabel}>Manual Assignment Override</Text>
@@ -280,17 +280,17 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
             {isManual ? (
               <>
                 {loadingWarehouses ? (
-                  <ActivityIndicator color="#5A80FD" style={{ marginVertical: hp(1) }} />
+                  <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1) }} />
                 ) : (
                   <TouchableOpacity
                     style={styles.dropdownHeader}
                     onPress={() => setShowBinDropdown(!showBinDropdown)}
                   >
-                    <Icon name="box" size={18} color="#999" style={{ marginRight: 8 }} />
-                    <Text style={{ flex: 1, color: selectedBin ? '#333' : '#999', fontSize: wp(4) }}>
+                    <Icon name="box" size={18} color="#62788a" style={{ marginRight: 8 }} />
+                    <Text style={{ flex: 1, color: selectedBin ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
                       {selectedBin || 'Select Target Bin...'}
                     </Text>
-                    <Icon name={showBinDropdown ? "chevron-up" : "chevron-down"} size={20} color="#555" />
+                    <Icon name={showBinDropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
                   </TouchableOpacity>
                 )}
 
@@ -312,12 +312,12 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
                 )}
               </>
             ) : (
-              <View style={[styles.dropdownHeader, { backgroundColor: '#F0F4FF', borderColor: '#A0B6FF' }]}>
-                <Icon name="box" size={18} color="#5A80FD" style={{ marginRight: 8 }} />
-                <Text style={{ flex: 1, color: selectedBin ? '#333' : '#999', fontSize: wp(4), fontWeight: '600' }}>
+              <View style={[styles.dropdownHeader, { backgroundColor: '#121b26', borderColor: '#3fbf75' }]}>
+                <Icon name="box" size={18} color="#3fbf75" style={{ marginRight: 8 }} />
+                <Text style={{ flex: 1, color: selectedBin ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4), fontWeight: '600' }}>
                   {loadingEmptyBin ? 'Finding vacant bin...' : (selectedBin || 'No vacant bin found')}
                 </Text>
-                {loadingEmptyBin && <ActivityIndicator size="small" color="#5A80FD" />}
+                {loadingEmptyBin && <ActivityIndicator size="small" color="#3fbf75" />}
               </View>
             )}
 
@@ -327,10 +327,10 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
                 <Text style={styles.label}>Verify Location: Scan Bin RFID</Text>
                 <View style={[
                   styles.inputContainer,
-                  isBinVerified === true && { borderColor: '#4CAF50', backgroundColor: '#E8F5E9' },
-                  isBinVerified === false && { borderColor: '#F44336', backgroundColor: '#FFEBEE' }
+                  isBinVerified === true && { borderColor: '#3fbf75', backgroundColor: '#3fbf75' },
+                  isBinVerified === false && { borderColor: '#e0654f', backgroundColor: '#e0654f' }
                 ]}>
-                  <Icon name="map-pin" size={18} color={isBinVerified === true ? '#4CAF50' : (isBinVerified === false ? '#F44336' : '#999')} style={{ marginRight: 8 }} />
+                  <Icon name="map-pin" size={18} color={isBinVerified === true ? '#3fbf75' : (isBinVerified === false ? '#e0654f' : '#62788a')} style={{ marginRight: 8 }} />
                   <TextInput
                     style={styles.input}
                     placeholder="Scan or enter Bin RFID..."
@@ -339,11 +339,11 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
                       setScannedBinRfid(text);
                       if (text.length >= 4) verifyScannedBin(text);
                     }}
-                    placeholderTextColor="#999"
+                    placeholderTextColor="#62788a"
                   />
-                  {verifyingBin && <ActivityIndicator size="small" color="#5A80FD" />}
-                  {isBinVerified === true && <Icon name="check" size={20} color="#4CAF50" />}
-                  {isBinVerified === false && <Icon name="x" size={20} color="#F44336" />}
+                  {verifyingBin && <ActivityIndicator size="small" color="#3fbf75" />}
+                  {isBinVerified === true && <Icon name="check" size={20} color="#3fbf75" />}
+                  {isBinVerified === false && <Icon name="x" size={20} color="#e0654f" />}
                 </View>
 
                 {/* Status helper text */}
@@ -366,7 +366,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
               disabled={loading || (!isManual && isBinVerified !== true)}
             >
               {loading ? (
-                <ActivityIndicator color="#fff" />
+                <ActivityIndicator color="#0a0f16" />
               ) : (
                 <Text style={styles.primaryButtonText}>Confirm Put Away</Text>
               )}
@@ -375,7 +375,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
 
           {successMessage && (
             <View style={styles.successCard}>
-              <Icon name="check-circle" size={24} color="#4CAF50" style={{ marginRight: 10 }} />
+              <Icon name="check-circle" size={24} color="#3fbf75" style={{ marginRight: 10 }} />
               <Text style={styles.successText}>{successMessage}</Text>
             </View>
           )}
@@ -388,10 +388,10 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#121b26',
   },
   header: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     flexDirection: 'row',
     alignItems: 'center',
     height: hp(8),
@@ -399,13 +399,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   backButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#18242f',
     borderRadius: 50,
     padding: 6,
   },
   headerText: {
-    color: '#fff',
-    fontSize: wp(5.5),
+    color: '#ecf1f4',
+    fontFamily: 'Archivo', fontSize: wp(5.5),
     fontWeight: '600',
     marginLeft: wp(4),
   },
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     paddingBottom: hp(5),
   },
   instructionCard: {
-    backgroundColor: '#EBF0FF',
+    backgroundColor: '#18242f',
     borderRadius: wp(3),
     padding: wp(4),
     flexDirection: 'row',
@@ -422,8 +422,8 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   instructionText: {
-    color: '#3F51B5',
-    fontSize: wp(3.8),
+    color: '#3fbf75',
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '500',
     flex: 1,
   },
@@ -432,7 +432,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   connectionBadge: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: 50,
     paddingHorizontal: wp(3.5),
     paddingVertical: hp(0.8),
@@ -447,34 +447,34 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   connectionText: {
-    fontSize: wp(3.2),
-    color: '#555',
+    fontFamily: 'Archivo', fontSize: wp(3.2),
+    color: '#9db0bd',
     fontWeight: '600',
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: wp(4),
     padding: wp(5),
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     marginBottom: hp(3),
   },
   label: {
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
-    color: '#555',
+    color: '#9db0bd',
     marginBottom: hp(0.8),
     marginTop: hp(1.5),
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#121b26',
     borderRadius: wp(3),
     paddingHorizontal: wp(3.5),
     marginBottom: hp(1),
@@ -485,8 +485,8 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     paddingVertical: hp(1.4),
-    fontSize: wp(4),
-    color: '#333',
+    fontFamily: 'Archivo', fontSize: wp(4),
+    color: '#ecf1f4',
   },
   checkboxRow: {
     flexDirection: 'row',
@@ -495,25 +495,25 @@ const styles = StyleSheet.create({
     marginBottom: hp(1),
   },
   checkboxLabel: {
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     color: '#4B5563',
     fontWeight: '600',
   },
   dropdownHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#121b26',
     borderRadius: wp(3),
     paddingHorizontal: wp(3.5),
     paddingVertical: hp(1.4),
     marginBottom: hp(2),
   },
   dropdownListInline: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#283845',
     borderRadius: wp(3),
     marginBottom: hp(2),
     overflow: 'hidden',
@@ -522,39 +522,39 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.4),
     paddingHorizontal: wp(4),
     borderBottomWidth: 0.5,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#0a0f16',
   },
   dropdownListItemText: {
-    fontSize: wp(4),
-    color: '#333',
+    fontFamily: 'Archivo', fontSize: wp(4),
+    color: '#ecf1f4',
     fontWeight: '500',
   },
   verificationContainer: {
     marginTop: hp(1),
     borderTopWidth: 1,
-    borderTopColor: '#F3F4F6',
+    borderTopColor: '#0a0f16',
     paddingTop: hp(1.5),
   },
   successHelperText: {
-    color: '#2E7D32',
-    fontSize: wp(3.4),
+    color: '#3fbf75',
+    fontFamily: 'Archivo', fontSize: wp(3.4),
     fontWeight: '600',
     marginBottom: hp(1.5),
   },
   errorHelperText: {
-    color: '#D32F2F',
-    fontSize: wp(3.4),
+    color: '#e0654f',
+    fontFamily: 'Archivo', fontSize: wp(3.4),
     fontWeight: '600',
     marginBottom: hp(1.5),
   },
   infoHelperText: {
     color: '#6B7280',
-    fontSize: wp(3.4),
+    fontFamily: 'Archivo', fontSize: wp(3.4),
     fontWeight: '500',
     marginBottom: hp(1.5),
   },
   primaryButton: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     borderRadius: wp(3),
     paddingVertical: hp(1.8),
     alignItems: 'center',
@@ -562,27 +562,27 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   primaryButtonText: {
-    color: '#fff',
-    fontSize: wp(4.2),
+    color: '#0a0f16',
+    fontFamily: 'Archivo', fontSize: wp(4.2),
     fontWeight: '700',
   },
   disabledButton: {
-    backgroundColor: '#A0B6FF',
+    backgroundColor: '#3fbf75',
     elevation: 0,
   },
   successCard: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#3fbf75',
     borderRadius: wp(3),
     padding: wp(4),
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: hp(3),
     borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
+    borderLeftColor: '#3fbf75',
   },
   successText: {
-    color: '#2E7D32',
-    fontSize: wp(3.8),
+    color: '#3fbf75',
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
     flex: 1,
   },

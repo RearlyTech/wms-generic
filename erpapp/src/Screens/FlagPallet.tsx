@@ -85,11 +85,11 @@ export default function FlagPallet({ navigation }: { navigation: any }) {
 
   return (
     <View style={styles.container}>
-      <SafeAreaView style={{ backgroundColor: '#5A80FD' }} edges={['top']} />
-      <CustomStatusBar backgroundColor={'#5A80FD'} />
+      <SafeAreaView style={{ backgroundColor: '#3fbf75' }} edges={['top']} />
+      <CustomStatusBar backgroundColor={'#3fbf75'} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-left" size={24} color="#fff" />
+          <Icon name="arrow-left" size={24} color="#ecf1f4" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Flag Pallet</Text>
       </View>
@@ -98,7 +98,7 @@ export default function FlagPallet({ navigation }: { navigation: any }) {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>Scan Pallet RFID</Text>
           <View style={styles.rfidContainer}>
-            <Icon name="radio" size={24} color={scannedTag ? '#4CAF50' : '#757575'} />
+            <Icon name="radio" size={24} color={scannedTag ? '#3fbf75' : '#757575'} />
             <Text style={[styles.rfidText, scannedTag && styles.rfidTextActive]}>
               {scannedTag || 'Waiting for scan...'}
             </Text>
@@ -108,31 +108,31 @@ export default function FlagPallet({ navigation }: { navigation: any }) {
         <Text style={styles.sectionTitle}>Select Flag Type</Text>
         <View style={styles.buttonRow}>
           <TouchableOpacity 
-            style={[styles.flagButton, { backgroundColor: '#F44336' }]} 
+            style={[styles.flagButton, { backgroundColor: '#e0654f' }]} 
             onPress={() => submitFlag('Damaged')}
             disabled={loading}
           >
-            <Icon name="alert-triangle" size={24} color="#FFF" />
+            <Icon name="alert-triangle" size={24} color="#0a0f16" />
             <Text style={styles.flagButtonText}>Damaged</Text>
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.flagButton, { backgroundColor: '#FF9800' }]} 
+            style={[styles.flagButton, { backgroundColor: '#d9933f' }]} 
             onPress={() => submitFlag('Expired')}
             disabled={loading}
           >
-            <Icon name="clock" size={24} color="#FFF" />
+            <Icon name="clock" size={24} color="#0a0f16" />
             <Text style={styles.flagButtonText}>Expired</Text>
           </TouchableOpacity>
         </View>
 
-        {loading && <ActivityIndicator size="large" color="#3F51B5" style={{ marginTop: 20 }} />}
+        {loading && <ActivityIndicator size="large" color="#3fbf75" style={{ marginTop: 20 }} />}
 
         <View style={styles.historySection}>
           <View style={styles.historyHeader}>
             <Text style={styles.sectionTitle}>Request History</Text>
             <TouchableOpacity onPress={fetchRequests}>
-              <Icon name="refresh-cw" size={20} color="#3F51B5" />
+              <Icon name="refresh-cw" size={20} color="#3fbf75" />
             </TouchableOpacity>
           </View>
           
@@ -162,10 +162,10 @@ export default function FlagPallet({ navigation }: { navigation: any }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#121b26',
   },
   header: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     flexDirection: 'row',
     alignItems: 'center',
     height: hp(8),
@@ -173,13 +173,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   backButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#18242f',
     borderRadius: 50,
     padding: 6,
   },
   headerTitle: {
-    color: '#fff',
-    fontSize: wp(5.5),
+    color: '#ecf1f4',
+    fontFamily: 'Archivo', fontSize: wp(5.5),
     fontWeight: '600',
     marginLeft: wp(4),
   },
@@ -188,46 +188,46 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   card: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#121b26',
     borderRadius: 12,
     padding: 20,
     marginBottom: 20,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
   },
   cardTitle: {
-    fontSize: 14,
+    fontFamily: 'Archivo', fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: '#9db0bd',
     marginBottom: 10,
     textTransform: 'uppercase',
   },
   rfidContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
+    backgroundColor: '#121b26',
     padding: 15,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: '#283845',
   },
   rfidText: {
     marginLeft: 15,
-    fontSize: 16,
+    fontFamily: 'Archivo', fontSize: 16,
     color: '#757575',
     fontFamily: 'monospace',
   },
   rfidTextActive: {
-    color: '#212121',
+    color: '#ecf1f4',
     fontWeight: '700',
   },
   sectionTitle: {
-    fontSize: 16,
+    fontFamily: 'Archivo', fontSize: 16,
     fontWeight: '700',
-    color: '#333',
+    color: '#ecf1f4',
     marginBottom: 15,
   },
   buttonRow: {
@@ -243,15 +243,15 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 3,
   },
   flagButtonText: {
-    color: '#FFF',
+    color: '#ecf1f4',
     fontWeight: '700',
-    fontSize: 16,
+    fontFamily: 'Archivo', fontSize: 16,
     marginLeft: 10,
   },
   historySection: {
@@ -265,12 +265,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   historyCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: '#121b26',
     padding: 15,
     borderRadius: 8,
     marginBottom: 10,
     borderLeftWidth: 4,
-    borderLeftColor: '#3F51B5',
+    borderLeftColor: '#3fbf75',
     elevation: 1,
   },
   historyRow: {
@@ -282,32 +282,32 @@ const styles = StyleSheet.create({
   historyRfid: {
     fontWeight: '700',
     fontFamily: 'monospace',
-    color: '#333',
+    color: '#ecf1f4',
   },
   historyType: {
-    color: '#666',
+    color: '#9db0bd',
     fontWeight: '600',
   },
   historyDate: {
-    fontSize: 12,
-    color: '#999',
+    fontFamily: 'Archivo', fontSize: 12,
+    color: '#62788a',
   },
   badge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 12,
   },
-  badgeGreen: { backgroundColor: '#E8F5E9' },
-  badgeRed: { backgroundColor: '#FFEBEE' },
-  badgeYellow: { backgroundColor: '#FFF3E0' },
+  badgeGreen: { backgroundColor: '#3fbf75' },
+  badgeRed: { backgroundColor: '#e0654f' },
+  badgeYellow: { backgroundColor: '#0a0f163E0' },
   badgeText: {
-    fontSize: 11,
+    fontFamily: 'Archivo', fontSize: 11,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#ecf1f4',
   },
   emptyText: {
     textAlign: 'center',
-    color: '#999',
+    color: '#62788a',
     fontStyle: 'italic',
     marginTop: 20,
   },

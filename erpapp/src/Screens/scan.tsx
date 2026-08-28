@@ -135,7 +135,7 @@ const Scan = ({ navigation }: { navigation: any }) => {
       </View>
       {rfid ? (
         <View style={styles.rfidBanner}>
-          <Icon name="tag" size={18} color="#2E7D32" style={{ marginRight: 12 }} />
+          <Icon name="tag" size={18} color="#3fbf75" style={{ marginRight: 12 }} />
           <View style={{ flex: 1 }}>
             <Text style={styles.rfidLabel}>Active RFID Tag Scanned</Text>
             <Text style={styles.rfidText}>{rfid}</Text>
@@ -175,7 +175,7 @@ const Scan = ({ navigation }: { navigation: any }) => {
           <Card style={styles.card}>
             <View style={styles.connectedDeviceContainer}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Icon name="bluetooth-b" size={24} color="#000" />
+                <Icon name="bluetooth-b" size={24} color="#ecf1f4" />
                 <Text style={{ paddingLeft: 20 }}>{item.name}</Text>
               </View>
               <TouchableOpacity
@@ -191,7 +191,7 @@ const Scan = ({ navigation }: { navigation: any }) => {
                     : ok(item)
                 }}
               >
-                <Text style={{ color: '#fff' }}>
+                <Text style={{ color: '#ecf1f4' }}>
                   {t(connectedDevice?.name === item.name ? 'Unpair' : 'Pair')}{' '}
                   {connectedDevice?.name === item.name ? 'Unpair' : 'Pair'}
                 </Text>
@@ -204,9 +204,9 @@ const Scan = ({ navigation }: { navigation: any }) => {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#fff' }}>
-      <SafeAreaView style={{ backgroundColor: '#5A80FD' }} edges={['top']} />
-      <CustomStatusBar backgroundColor={'#5A80FD'} />
+    <View style={{ flex: 1, backgroundColor: '#121b26' }}>
+      <SafeAreaView style={{ backgroundColor: '#3fbf75' }} edges={['top']} />
+      <CustomStatusBar backgroundColor={'#3fbf75'} />
       <View style={styles.mainContainer}>
         <RenderDeviceList />
       </View>
@@ -226,7 +226,7 @@ const Scan = ({ navigation }: { navigation: any }) => {
               ? 'grey'
               : isScanning
                 ? 'grey'
-                : '#5A80FD',
+                : '#3fbf75',
           },
         ]}
         onPress={!isScanning && !connectedDevice ? handlescan : undefined}
@@ -234,7 +234,7 @@ const Scan = ({ navigation }: { navigation: any }) => {
       >
         <Text style={styles.text}>{t('Scan') || 'Scan'}</Text>
       </TouchableOpacity>
-      <SafeAreaView style={{ backgroundColor: '#fff' }} edges={['bottom']} />
+      <SafeAreaView style={{ backgroundColor: '#121b26' }} edges={['bottom']} />
     </View>
   );
 };
@@ -242,7 +242,7 @@ const Scan = ({ navigation }: { navigation: any }) => {
 export default Scan;
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     flex: 1,
   },
   mainContainer: {
@@ -258,13 +258,13 @@ const styles = StyleSheet.create({
     height: height * 0.52,
   },
   scanTitle: {
-    color: '#5A80FD',
-    fontSize: normalize(25),
+    color: '#3fbf75',
+    fontFamily: 'Archivo', fontSize: normalize(25),
     fontWeight: '400',
   },
   scanDescription: {
-    color: '#000',
-    fontSize: normalize(18),
+    color: '#ecf1f4',
+    fontFamily: 'Archivo', fontSize: normalize(18),
     fontWeight: '500',
     marginTop: 5,
     marginLeft: 6,
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     resizeMode: 'contain',
-    tintColor: '#fff',
+    tintColor: '#0a0f16',
   },
   imageContainer: {
     width: baseSize * 0.5,
@@ -286,13 +286,13 @@ const styles = StyleSheet.create({
     width: '80%',
     height: '80%',
     resizeMode: 'contain',
-    tintColor: '#fff',
+    tintColor: '#0a0f16',
   },
   container1: {
     width: baseSize * 0.6,
     height: baseSize * 0.6,
     borderRadius: (baseSize * 0.6) / 2,
-    backgroundColor: '#86A2FF',
+    backgroundColor: '#3fbf75',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     width: baseSize * 0.8,
     height: baseSize * 0.8,
     borderRadius: (baseSize * 0.8) / 2,
-    backgroundColor: '#96AEFF',
+    backgroundColor: '#3fbf75',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -308,12 +308,12 @@ const styles = StyleSheet.create({
     width: baseSize,
     height: baseSize,
     borderRadius: baseSize / 2,
-    backgroundColor: '#A3B9FF',
+    backgroundColor: '#3fbf75',
     alignItems: 'center',
     justifyContent: 'center',
   },
   Button: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#3fbf75',
     borderRadius: 8,
     alignItems: 'center',
     height: height * 0.07,
@@ -324,22 +324,22 @@ const styles = StyleSheet.create({
     bottom: '6%',
   },
   text: {
-    color: '#fff',
+    color: '#ecf1f4',
     fontWeight: '600',
-    fontSize: normalize(24),
+    fontFamily: 'Archivo', fontSize: normalize(24),
     textAlign: 'center',
   },
   scanningText: {
-    color: '#5A80FD',
-    fontSize: normalize(16),
+    color: '#3fbf75',
+    fontFamily: 'Archivo', fontSize: normalize(16),
     fontWeight: '600',
     marginTop: 20,
     textAlign: 'center',
     marginBottom: 100, // push list up to not overlap buttons
   },
   wmsButton: {
-    backgroundColor: '#fff',
-    borderColor: '#5A80FD',
+    backgroundColor: '#121b26',
+    borderColor: '#3fbf75',
     borderWidth: 2,
     borderRadius: 8,
     alignItems: 'center',
@@ -351,12 +351,12 @@ const styles = StyleSheet.create({
     bottom: '15%',
   },
   wmsButtonText: {
-    color: '#5A80FD',
+    color: '#3fbf75',
     fontWeight: '700',
-    fontSize: normalize(20),
+    fontFamily: 'Archivo', fontSize: normalize(20),
   },
   connectButton: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     paddingVertical: 8,
     paddingHorizontal: 8,
     borderRadius: 10,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     width: width * 0.9,
     justifyContent: 'center',
     borderRadius: 6,
@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
   },
   Header: {
     height: hp(8),
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -407,15 +407,15 @@ const styles = StyleSheet.create({
     marginRight: wp(1.5),
   },
   Text1: {
-    fontSize: wp(5.5),
+    fontFamily: 'Archivo', fontSize: wp(5.5),
     fontWeight: '600',
-    color: '#fff',
+    color: '#ecf1f4',
   },
   rfidBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
-    borderColor: '#81C784',
+    backgroundColor: '#3fbf75',
+    borderColor: '#3fbf75',
     borderWidth: 1.5,
     borderRadius: 10,
     padding: 12,
@@ -424,13 +424,13 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   rfidLabel: {
-    fontSize: normalize(12),
-    color: '#2E7D32',
+    fontFamily: 'Archivo', fontSize: normalize(12),
+    color: '#3fbf75',
     fontWeight: 'bold',
   },
   rfidText: {
-    fontSize: normalize(15),
-    color: '#1B5E20',
+    fontFamily: 'Archivo', fontSize: normalize(15),
+    color: '#3fbf75',
     fontFamily: 'monospace',
     marginTop: 2,
     letterSpacing: 0.5,

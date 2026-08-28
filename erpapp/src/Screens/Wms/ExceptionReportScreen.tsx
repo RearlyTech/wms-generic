@@ -47,20 +47,20 @@ const ExceptionReportScreen = ({ navigation }: { navigation: any }) => {
 
   return (
     <View style={styles.root}>
-      <SafeAreaView style={{ backgroundColor: '#5A80FD' }} edges={['top']} />
-      <CustomStatusBar backgroundColor={'#5A80FD'} />
+      <SafeAreaView style={{ backgroundColor: '#3fbf75' }} edges={['top']} />
+      <CustomStatusBar backgroundColor={'#3fbf75'} />
 
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Icon name="arrow-left" size={24} color="#fff" />
+          <Icon name="arrow-left" size={24} color="#ecf1f4" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Exception & Activity Log</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         <View style={styles.instructionCard}>
-          <Icon name="info" size={20} color="#5A80FD" style={{ marginRight: 8 }} />
+          <Icon name="info" size={20} color="#3fbf75" style={{ marginRight: 8 }} />
           <Text style={styles.instructionText}>
             This is a real-time list of all physical dispatches, tag re-mappings, stock count discrepancies, and manual exceptions recorded by operators.
           </Text>
@@ -69,28 +69,28 @@ const ExceptionReportScreen = ({ navigation }: { navigation: any }) => {
         {/* Dynamic Activity Feed List */}
         <View style={styles.logCard}>
           <View style={styles.logHeaderRow}>
-            <Icon name="activity" size={20} color="#5A80FD" style={{ marginRight: 8 }} />
+            <Icon name="activity" size={20} color="#3fbf75" style={{ marginRight: 8 }} />
             <Text style={styles.logTitle}>WMS Activity Feed</Text>
             <TouchableOpacity onPress={fetchActivityLogs} style={{ padding: 4 }}>
-              <Icon name="refresh-cw" size={16} color="#5A80FD" />
+              <Icon name="refresh-cw" size={16} color="#3fbf75" />
             </TouchableOpacity>
           </View>
           
           {loadingLogs ? (
-            <ActivityIndicator color="#5A80FD" style={{ marginVertical: hp(2) }} />
+            <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(2) }} />
           ) : activityLogs.length > 0 ? (
             activityLogs.map((log: any) => {
-              let badgeColor = '#5A80FD';
-              let badgeBg = '#EBF0FF';
+              let badgeColor = '#3fbf75';
+              let badgeBg = '#18242f';
               if (log.activity_type === 'Dispatch') {
-                badgeColor = '#2E7D32';
-                badgeBg = '#E8F5E9';
+                badgeColor = '#3fbf75';
+                badgeBg = '#3fbf75';
               } else if (log.activity_type === 'Stock Discrepancy') {
-                badgeColor = '#C62828';
-                badgeBg = '#FFEBEE';
+                badgeColor = '#e0654f';
+                badgeBg = '#e0654f';
               } else if (log.activity_type === 'Manual Exception') {
                 badgeColor = '#EF6C00';
-                badgeBg = '#FFF3E0';
+                badgeBg = '#0a0f163E0';
               } else if (log.activity_type === 'RFID Change') {
                 badgeColor = '#6A1B9A';
                 badgeBg = '#F3E5F5';
@@ -111,13 +111,13 @@ const ExceptionReportScreen = ({ navigation }: { navigation: any }) => {
                     <Text style={styles.logTimeText}>{formattedDate} {formattedTime}</Text>
                   </View>
                   <Text style={styles.logLocText}>
-                    Location/Target: <Text style={{fontWeight: '700', color: '#333'}}>{log.target_location || 'N/A'}</Text>
+                    Location/Target: <Text style={{fontWeight: '700', color: '#ecf1f4'}}>{log.target_location || 'N/A'}</Text>
                   </Text>
                   <Text style={styles.logDetailsText}>{log.details}</Text>
                   {log.old_tag && log.new_tag ? (
                     <View style={styles.tagChangeBlock}>
                       <Text style={styles.tagChangeText}>Old Tag: {log.old_tag.substring(0, 12)}...</Text>
-                      <Icon name="arrow-right" size={12} color="#999" style={{ marginHorizontal: 6 }} />
+                      <Icon name="arrow-right" size={12} color="#62788a" style={{ marginHorizontal: 6 }} />
                       <Text style={styles.tagChangeText}>New: {log.new_tag.substring(0, 12)}...</Text>
                     </View>
                   ) : null}
@@ -136,10 +136,10 @@ const ExceptionReportScreen = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F5F6FA',
+    backgroundColor: '#121b26',
   },
   header: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     flexDirection: 'row',
     alignItems: 'center',
     height: hp(8),
@@ -147,13 +147,13 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   backButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: '#18242f',
     borderRadius: 50,
     padding: 6,
   },
   headerText: {
-    color: '#fff',
-    fontSize: wp(5.5),
+    color: '#ecf1f4',
+    fontFamily: 'Archivo', fontSize: wp(5.5),
     fontWeight: '600',
     marginLeft: wp(4),
   },
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     paddingBottom: hp(5),
   },
   instructionCard: {
-    backgroundColor: '#EBF0FF',
+    backgroundColor: '#18242f',
     borderRadius: wp(3),
     padding: wp(4),
     flexDirection: 'row',
@@ -170,8 +170,8 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   instructionText: {
-    color: '#3F51B5',
-    fontSize: wp(3.8),
+    color: '#3fbf75',
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '500',
     flex: 1,
   },
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   connectionBadge: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: 50,
     paddingHorizontal: wp(3.5),
     paddingVertical: hp(0.8),
@@ -195,33 +195,33 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   connectionText: {
-    fontSize: wp(3.2),
-    color: '#555',
+    fontFamily: 'Archivo', fontSize: wp(3.2),
+    color: '#9db0bd',
     fontWeight: '600',
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: wp(4),
     padding: wp(5),
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     marginBottom: hp(3),
   },
   label: {
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
-    color: '#555',
+    color: '#9db0bd',
     marginBottom: hp(1.2),
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#121b26',
     borderRadius: wp(3),
     paddingHorizontal: wp(3.5),
     marginBottom: hp(2.5),
@@ -229,24 +229,24 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     paddingVertical: hp(1.4),
-    fontSize: wp(4),
-    color: '#333',
+    fontFamily: 'Archivo', fontSize: wp(4),
+    color: '#ecf1f4',
   },
   dropdownHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#121b26',
     borderRadius: wp(3),
     paddingHorizontal: wp(3.5),
     paddingVertical: hp(1.4),
     marginBottom: hp(2),
   },
   dropdownListInline: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: '#283845',
     borderRadius: wp(3),
     marginBottom: hp(2),
     overflow: 'hidden',
@@ -255,45 +255,45 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.4),
     paddingHorizontal: wp(4),
     borderBottomWidth: 0.5,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#0a0f16',
   },
   dropdownListItemText: {
-    fontSize: wp(4),
-    color: '#333',
+    fontFamily: 'Archivo', fontSize: wp(4),
+    color: '#ecf1f4',
     fontWeight: '500',
   },
   itemsListContainer: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#121b26',
     borderRadius: wp(3),
     padding: wp(3),
     marginTop: hp(1),
     marginBottom: hp(2.5),
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#121b26',
   },
   itemsTitle: {
-    fontSize: wp(4),
+    fontFamily: 'Archivo', fontSize: wp(4),
     fontWeight: '700',
     color: '#374151',
     marginBottom: hp(1.2),
   },
   itemsTable: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: wp(2),
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#121b26',
     overflow: 'hidden',
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#121b26',
     paddingVertical: hp(1),
     paddingHorizontal: wp(3),
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#121b26',
   },
   tableHeaderText: {
-    fontSize: wp(3.5),
+    fontFamily: 'Archivo', fontSize: wp(3.5),
     fontWeight: '700',
     color: '#4B5563',
   },
@@ -302,11 +302,11 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.2),
     paddingHorizontal: wp(3),
     borderBottomWidth: 0.5,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#121b26',
     alignItems: 'center',
   },
   tableRowText: {
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     color: '#1F2937',
   },
   noItemsText: {
@@ -314,32 +314,32 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.5),
     color: '#9CA3AF',
     fontStyle: 'italic',
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
   },
   typeScroll: {
     flexDirection: 'row',
     marginBottom: hp(2.5),
   },
   typeBadge: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#121b26',
     borderRadius: wp(2),
     paddingHorizontal: wp(4),
     paddingVertical: hp(1),
     marginRight: wp(2),
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#121b26',
   },
   typeBadgeActive: {
-    backgroundColor: '#5A80FD',
-    borderColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
+    borderColor: '#3fbf75',
   },
   typeText: {
-    color: '#666',
+    color: '#9db0bd',
     fontWeight: '600',
-    fontSize: wp(3.5),
+    fontFamily: 'Archivo', fontSize: wp(3.5),
   },
   typeTextActive: {
-    color: '#fff',
+    color: '#ecf1f4',
   },
   textAreaContainer: {
     alignItems: 'flex-start',
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     height: hp(12),
   },
   primaryButton: {
-    backgroundColor: '#5A80FD',
+    backgroundColor: '#3fbf75',
     borderRadius: wp(3),
     paddingVertical: hp(1.8),
     alignItems: 'center',
@@ -357,63 +357,63 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   primaryButtonText: {
-    color: '#fff',
-    fontSize: wp(4.2),
+    color: '#0a0f16',
+    fontFamily: 'Archivo', fontSize: wp(4.2),
     fontWeight: '700',
   },
   disabledButton: {
-    backgroundColor: '#A0B6FF',
+    backgroundColor: '#3fbf75',
     elevation: 0,
   },
   successCard: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: '#3fbf75',
     borderRadius: wp(3),
     padding: wp(4),
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: hp(3),
     borderLeftWidth: 4,
-    borderLeftColor: '#4CAF50',
+    borderLeftColor: '#3fbf75',
   },
   successText: {
-    color: '#2E7D32',
-    fontSize: wp(3.8),
+    color: '#3fbf75',
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
     flex: 1,
   },
   simCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: wp(4),
     padding: wp(5),
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#5A80FD',
+    borderColor: '#3fbf75',
   },
   simTitle: {
-    fontSize: wp(3.8),
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '700',
-    color: '#5A80FD',
+    color: '#3fbf75',
     marginBottom: hp(1.5),
   },
   simButton: {
-    backgroundColor: '#EBF0FF',
+    backgroundColor: '#18242f',
     paddingHorizontal: wp(4),
     paddingVertical: hp(1),
     borderRadius: wp(2),
     borderWidth: 1,
-    borderColor: '#5A80FD',
+    borderColor: '#3fbf75',
   },
   simButtonText: {
-    color: '#5A80FD',
+    color: '#3fbf75',
     fontWeight: '700',
-    fontSize: wp(3.5),
+    fontFamily: 'Archivo', fontSize: wp(3.5),
   },
   logCard: {
-    backgroundColor: '#fff',
+    backgroundColor: '#121b26',
     borderRadius: wp(4),
     padding: wp(5),
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: '#ecf1f4',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -423,19 +423,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#0a0f16',
     paddingBottom: hp(1.2),
     marginBottom: hp(1.5),
   },
   logTitle: {
     flex: 1,
-    fontSize: wp(4.2),
+    fontFamily: 'Archivo', fontSize: wp(4.2),
     fontWeight: '700',
-    color: '#333',
+    color: '#ecf1f4',
   },
   logItem: {
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: '#0a0f16',
     paddingVertical: hp(1.5),
   },
   logItemTopRow: {
@@ -450,41 +450,41 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   badgeText: {
-    fontSize: wp(3.2),
+    fontFamily: 'Archivo', fontSize: wp(3.2),
     fontWeight: '700',
   },
   logTimeText: {
-    fontSize: wp(3.2),
-    color: '#999',
+    fontFamily: 'Archivo', fontSize: wp(3.2),
+    color: '#62788a',
     fontWeight: '500',
   },
   logLocText: {
-    fontSize: wp(3.6),
-    color: '#666',
+    fontFamily: 'Archivo', fontSize: wp(3.6),
+    color: '#9db0bd',
     marginBottom: hp(0.5),
   },
   logDetailsText: {
-    fontSize: wp(3.6),
-    color: '#444',
+    fontFamily: 'Archivo', fontSize: wp(3.6),
+    color: '#ecf1f4',
     lineHeight: wp(4.8),
   },
   tagChangeBlock: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#121b26',
     padding: wp(2),
     borderRadius: 6,
     marginTop: hp(0.8),
   },
   tagChangeText: {
-    fontSize: wp(3.2),
-    color: '#555',
+    fontFamily: 'Archivo', fontSize: wp(3.2),
+    color: '#9db0bd',
     fontFamily: 'monospace',
   },
   noLogsText: {
     textAlign: 'center',
-    color: '#999',
-    fontSize: wp(3.8),
+    color: '#62788a',
+    fontFamily: 'Archivo', fontSize: wp(3.8),
     marginVertical: hp(2),
   },
 });
