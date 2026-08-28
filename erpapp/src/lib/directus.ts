@@ -64,3 +64,42 @@ export const directus = createDirectus(API_URL)
       }
     })
   );
+
+export const refreshAuthToken = async (): Promise<string | null> => {
+  try {
+    const refreshToken = getItem('refreshToken');
+    if (!refreshToken) return null;
+
+    const res = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh_token: refreshToken, mode: 'json' })
+    });
+
+    if (!res.ok) {
+      removeItem('authToken');
+      removeItem('refreshToken');
+      removeItem('expires');
+      removeItem('expires_at');
+      return null;
+    }
+
+    const json = await res.json();
+    const { access_token, refresh_token, expires } = json.data;
+
+    if (access_token) setItem('authToken', access_token);
+    if (refresh_token) setItem('refreshToken', refresh_token);
+    if (expires) setItem('expires', String(expires));
+
+    if (expires) {
+      const expires_at = Date.now() + (expires);
+      setItem('expires_at', String(expires_at));
+    }
+
+    return access_token;
+  } catch (err) {
+    console.error('Failed to refresh token manually:', err);
+    return null;
+  }
+};
+

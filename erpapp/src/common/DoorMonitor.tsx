@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Modal } from 'react-native';
+import { View, Text, StyleSheet, Modal, Alert } from 'react-native';
 import { readItems } from '@directus/sdk';
-import { directus } from '../lib/directus';
-import { getItem } from '../Storage/Storage';
+import { directus, refreshAuthToken } from '../lib/directus';
+import { getItem, removeItem } from '../Storage/Storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import Sound from 'react-native-sound';
 
@@ -27,33 +27,70 @@ export default function DoorMonitor({ children }: { children: React.ReactNode })
       try {
         // Only check if we are authenticated
         const hasToken = getItem('authToken');
+        console.log('DoorMonitor hasToken:', hasToken ? 'YES' : 'NO');
         if (!hasToken) return;
 
-        const response = await directus.request(
-          readItems('gateway_sensor_readings', {
-            filter: { sensor_type: { _eq: 'door_uart' } },
-            limit: 1,
-            sort: ['-created_at'],
-            fields: ['*'],
-          })
-        );
+        const futureTime = new Date(Date.now() + 86400000).toISOString();
+        
+        const params = new URLSearchParams();
+        params.append('filter[_and][0][sensor_type][_eq]', 'door_uart');
+        params.append('filter[_and][1][created_at][_lte]', futureTime);
+        params.append('limit', '1');
+        params.append('sort', '-created_at');
+        
+        const url = `https://dev-directus.rearlytech.com/items/gateway_sensor_readings?${params.toString()}`;
+        console.log('DoorMonitor Sending request...', url);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        
+        const res = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${hasToken}`,
+          },
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (res.status === 401) {
+          console.log('DoorMonitor fetch got 401, attempting manual refresh...');
+          const newAccessToken = await refreshAuthToken();
+          
+          if (newAccessToken) {
+            console.log('DoorMonitor fetch successfully refreshed token!');
+            return; // Will retry on the next 5-second tick
+          }
+          
+          removeItem('authToken');
+          Alert.alert("Session Expired", "Please restart the app to log in again.");
+          return;
+        }
+        
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        
+        const responseJson = await res.json();
+        const response = responseJson.data;
+        console.log("DoorMonitor Response Length:", response?.length);
 
         if (response && response.length > 0) {
           const item = response[0];
-          
+          console.log("DoorMonitor latest item:", JSON.stringify(item));
+
           let isAlarm = false;
           let isAmonia = false;
           let isDoorOpen = false;
 
           // Check direct DB fields if they exist
-          if (item.alarm_status) {
-            isAlarm = String(item.alarm_status).toUpperCase() === 'ACTIVE';
+          if (String(item.alarm_status).toUpperCase() === 'ACTIVE') {
+            isAlarm = true;
           }
-          if (item.amonia_status) {
-            isAmonia = String(item.amonia_status).toUpperCase() === 'HIGH';
+          if (String(item.amonia_status).toUpperCase() === 'HIGH') {
+            isAmonia = true;
           }
-          if (item.door_status) {
-            isDoorOpen = String(item.door_status).toUpperCase() === 'OPEN';
+          if (String(item.door_status).toUpperCase() === 'OPEN') {
+            isDoorOpen = true;
           }
 
           if (item.raw_json) {
@@ -64,19 +101,19 @@ export default function DoorMonitor({ children }: { children: React.ReactNode })
               const alarmStatus = parsed?.values?.alarm_status || parsed?.alarm_status || '';
               const amoniaStatus = parsed?.values?.amonia_status || parsed?.amonia_status || '';
               const doorStatus = parsed?.values?.door_status || parsed?.door_status || '';
-              
+
               if (String(alarmStatus).toUpperCase() === 'ACTIVE') isAlarm = true;
               if (String(amoniaStatus).toUpperCase() === 'HIGH') isAmonia = true;
               if (String(doorStatus).toUpperCase() === 'OPEN') isDoorOpen = true;
-            } catch (e) {}
+            } catch (e) { }
           }
-          
+
           setAlarmActive(isAlarm);
           setAmoniaHigh(isAmonia);
           setDoorOpen(isDoorOpen);
         }
       } catch (err) {
-        // console.warn('Failed to check door status:', err);
+        console.log('DoorMonitor fetch failed:', err);
       }
     };
 
