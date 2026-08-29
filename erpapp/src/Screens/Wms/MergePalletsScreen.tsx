@@ -41,8 +41,8 @@ const MergePalletsScreen = ({ navigation }: { navigation: any }) => {
   const [warehouses, setWarehouses] = useState<string[]>([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
 
-  const [showADropdown, setShowADropdown] = useState(false);
   const [showBDropdown, setShowBDropdown] = useState(false);
+  const [isManual, setIsManual] = useState(false);
 
   // Fetch warehouses on mount
   useEffect(() => {
@@ -90,12 +90,14 @@ const MergePalletsScreen = ({ navigation }: { navigation: any }) => {
   useEffect(() => {
     if (isFocused && rfid) {
       setSuccessMessage(null);
-      if (activeInput === 'A') {
-        setPalletA(rfid);
-        fetchPalletADetails(rfid);
-        setActiveInput('B');
-      } else {
-        setPalletB(rfid);
+      if (activeInput === 'A' || (!isManual && activeInput === 'B')) {
+        if (activeInput === 'A') {
+          setPalletA(rfid);
+          fetchPalletADetails(rfid);
+          if (!isManual) setActiveInput('B');
+        } else {
+          setPalletB(rfid);
+        }
       }
     }
   }, [rfid, isFocused]);
@@ -210,47 +212,29 @@ const MergePalletsScreen = ({ navigation }: { navigation: any }) => {
         </View>
 
         <View style={styles.card}>
-          {/* Source Pallet A */}
-          <Text style={styles.label}>Source Pallet A RFID</Text>
-          {loadingWarehouses ? (
-            <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1) }} />
-          ) : (
-            <TouchableOpacity
-              style={[styles.dropdownHeader, activeInput === 'A' && styles.dropdownHeaderActive]}
-              onPress={() => {
-                setShowADropdown(!showADropdown);
-                setShowBDropdown(false);
+          <Text style={styles.label}>Scanned Source Pallet A RFID</Text>
+          <View style={styles.inputContainer}>
+            <Icon name="tag" size={18} color={activeInput === 'A' ? '#3fbf75' : '#62788a'} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Waiting for Source Pallet A RFID scan..."
+              value={palletA}
+              editable={false}
+              placeholderTextColor="#62788a"
+            />
+            {palletA ? (
+              <TouchableOpacity onPress={() => {
+                setPalletA('');
+                setItemName('');
+                setItemCode('');
+                setAvailableQty(null);
+                setMergeQty('');
                 setActiveInput('A');
-              }}
-            >
-              <Icon name="box" size={18} color={activeInput === 'A' ? '#3fbf75' : '#62788a'} style={{ marginRight: 8 }} />
-              <Text style={{ flex: 1, color: palletA ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
-                {palletA || 'Select Pallet A...'}
-              </Text>
-              <Icon name={showADropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
-            </TouchableOpacity>
-          )}
-
-          {showADropdown && (
-            <View style={styles.dropdownListContainer}>
-              <ScrollView nestedScrollEnabled style={{ maxHeight: hp(20) }}>
-                {binsList.map((bin, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.dropdownListItem}
-                    onPress={() => {
-                      setPalletA(bin);
-                      fetchPalletADetails(bin);
-                      setShowADropdown(false);
-                      setActiveInput('B');
-                    }}
-                  >
-                    <Text style={styles.dropdownListItemText}>{bin}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+              }}>
+                <Icon name="x" size={18} color="#62788a" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
           {loadingItem && (
             <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1.5) }} />
@@ -269,39 +253,85 @@ const MergePalletsScreen = ({ navigation }: { navigation: any }) => {
             </View>
           ) : null}
 
-          {/* Source Pallet B */}
-          <Text style={styles.label}>Destination Pallet B RFID</Text>
+          {/* MANUAL OVERRIDE CHECKBOX */}
           <TouchableOpacity
-            style={[styles.dropdownHeader, activeInput === 'B' && styles.dropdownHeaderActive]}
+            style={styles.checkboxRow}
             onPress={() => {
-              setShowBDropdown(!showBDropdown);
-              setShowADropdown(false);
-              setActiveInput('B');
+              setIsManual(!isManual);
+              setPalletB('');
+              setShowBDropdown(false);
+              if (isManual) {
+                // Switching back to auto
+                setActiveInput(palletA ? 'B' : 'A');
+              } else {
+                setActiveInput('B');
+              }
             }}
           >
-            <Icon name="box" size={18} color={activeInput === 'B' ? '#3fbf75' : '#62788a'} style={{ marginRight: 8 }} />
-            <Text style={{ flex: 1, color: palletB ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
-              {palletB || 'Select Pallet B...'}
-            </Text>
-            <Icon name={showBDropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
+            <Icon
+              name={isManual ? "check-square" : "square"}
+              size={22}
+              color={isManual ? "#3fbf75" : "#62788a"}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.checkboxLabel}>Manual Pallet Selection</Text>
           </TouchableOpacity>
 
-          {showBDropdown && (
-            <View style={styles.dropdownListContainer}>
-              <ScrollView nestedScrollEnabled style={{ maxHeight: hp(20) }}>
-                {binsList.map((bin, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.dropdownListItem}
-                    onPress={() => {
-                      setPalletB(bin);
-                      setShowBDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownListItemText}>{bin}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+          {/* Destination Pallet B */}
+          <Text style={styles.label}>Destination Pallet B RFID</Text>
+          {isManual ? (
+            <>
+              <TouchableOpacity
+                style={[styles.dropdownHeader, activeInput === 'B' && styles.dropdownHeaderActive]}
+                onPress={() => {
+                  setShowBDropdown(!showBDropdown);
+                  setActiveInput('B');
+                }}
+              >
+                <Icon name="box" size={18} color={activeInput === 'B' ? '#3fbf75' : '#62788a'} style={{ marginRight: 8 }} />
+                <Text style={{ flex: 1, color: palletB ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
+                  {palletB || 'Select Pallet B...'}
+                </Text>
+                <Icon name={showBDropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
+              </TouchableOpacity>
+
+              {showBDropdown && (
+                <View style={styles.dropdownListContainer}>
+                  <ScrollView nestedScrollEnabled style={{ maxHeight: hp(20) }}>
+                    {binsList.map((bin, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.dropdownListItem}
+                        onPress={() => {
+                          setPalletB(bin);
+                          setShowBDropdown(false);
+                        }}
+                      >
+                        <Text style={styles.dropdownListItemText}>{bin}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </>
+          ) : (
+            <View style={styles.inputContainer}>
+              <Icon name="tag" size={18} color={activeInput === 'B' ? '#3fbf75' : '#62788a'} style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Scan Destination Pallet B RFID..."
+                value={palletB}
+                editable={false}
+                placeholderTextColor="#62788a"
+              />
+              {palletB ? (
+                <TouchableOpacity onPress={() => {
+                  setPalletB('');
+                  setActiveInput('B');
+                }}>
+                  <Icon name="x" size={18} color="#62788a" />
+                </TouchableOpacity>
+              ) : null}
             </View>
           )}
 
@@ -441,11 +471,24 @@ const styles = StyleSheet.create({
     borderRadius: wp(3),
     paddingHorizontal: wp(3.5),
   },
+  inputIcon: {
+    marginRight: 10,
+  },
   input: {
     flex: 1,
     paddingVertical: hp(1.4),
     fontFamily: 'Archivo', fontSize: wp(4),
     color: '#ecf1f4',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  checkboxLabel: {
+    color: '#ecf1f4',
+    fontFamily: 'Archivo',
+    fontSize: wp(3.8),
   },
   dropdownHeader: {
     flexDirection: 'row',

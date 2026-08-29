@@ -38,8 +38,8 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
   const [warehouses, setWarehouses] = useState<string[]>([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
 
-  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
   const [showTargetDropdown, setShowTargetDropdown] = useState(false);
+  const [isManual, setIsManual] = useState(false);
 
   // Fetch warehouses on mount
   useEffect(() => {
@@ -92,14 +92,19 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
     }
   };
 
-  // Monitor BLE scans when screen is focused
   useEffect(() => {
     if (isFocused && rfid) {
       setSuccessMessage(null);
-      setSourceBin(rfid);
-      fetchPalletForBin(rfid);
+      if (!sourceBin || (!isManual && sourceBin && !targetBin)) {
+        if (!sourceBin) {
+          setSourceBin(rfid);
+          fetchPalletForBin(rfid);
+        } else {
+          setTargetBin(rfid);
+        }
+      }
     }
-  }, [rfid, isFocused]);
+  }, [rfid, isFocused, sourceBin, isManual]);
 
   const handleMove = async () => {
     if (!sourceBin) {
@@ -195,44 +200,27 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Select / Scan Source Bin</Text>
-          {loadingWarehouses ? (
-            <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1) }} />
-          ) : (
-            <TouchableOpacity
-              style={styles.dropdownHeader}
-              onPress={() => {
-                setShowSourceDropdown(!showSourceDropdown);
-                setShowTargetDropdown(false);
-              }}
-            >
-              <Icon name="tag" size={18} color="#62788a" style={{ marginRight: 8 }} />
-              <Text style={{ flex: 1, color: sourceBin ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
-                {sourceBin || 'Select Source Bin...'}
-              </Text>
-              <Icon name={showSourceDropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
-            </TouchableOpacity>
-          )}
-
-          {showSourceDropdown && (
-            <View style={styles.dropdownListContainer}>
-              <ScrollView nestedScrollEnabled style={{ maxHeight: hp(20) }}>
-                {binsList.map((bin, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.dropdownListItem}
-                    onPress={() => {
-                      setSourceBin(bin);
-                      fetchPalletForBin(bin);
-                      setShowSourceDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownListItemText}>{bin}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+          <Text style={styles.label}>Scanned Source Bin</Text>
+          <View style={styles.inputContainer}>
+            <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Waiting for Source Bin RFID scan..."
+              value={sourceBin}
+              editable={false}
+              placeholderTextColor="#62788a"
+            />
+            {sourceBin ? (
+              <TouchableOpacity onPress={() => {
+                setSourceBin('');
+                setAssignedPalletName('');
+                setAssignedPalletRfid('');
+                setPalletError(null);
+              }}>
+                <Icon name="x" size={18} color="#62788a" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
           {loadingPallet && (
             <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1.5) }} />
@@ -260,37 +248,73 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
             </View>
           ) : null}
 
-          <Text style={styles.label}>Select Destination Target Bin</Text>
           <TouchableOpacity
-            style={styles.dropdownHeader}
+            style={styles.checkboxRow}
             onPress={() => {
-              setShowTargetDropdown(!showTargetDropdown);
-              setShowSourceDropdown(false);
+              setIsManual(!isManual);
+              setTargetBin('');
+              setShowTargetDropdown(false);
             }}
           >
-            <Icon name="arrow-right" size={18} color="#62788a" style={{ marginRight: 8 }} />
-            <Text style={{ flex: 1, color: targetBin ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
-              {targetBin || 'Select Destination Bin...'}
-            </Text>
-            <Icon name={showTargetDropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
+            <Icon
+              name={isManual ? "check-square" : "square"}
+              size={22}
+              color={isManual ? "#3fbf75" : "#62788a"}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.checkboxLabel}>Manual Assignment Override</Text>
           </TouchableOpacity>
 
-          {showTargetDropdown && (
-            <View style={styles.dropdownListContainer}>
-              <ScrollView nestedScrollEnabled style={{ maxHeight: hp(20) }}>
-                {binsList.filter(b => b !== sourceBin).map((item, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.dropdownListItem}
-                    onPress={() => {
-                      setTargetBin(item);
-                      setShowTargetDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownListItemText}>{item}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+          <Text style={styles.label}>Destination Target Bin</Text>
+          {isManual ? (
+            <>
+              <TouchableOpacity
+                style={styles.dropdownHeader}
+                onPress={() => {
+                  setShowTargetDropdown(!showTargetDropdown);
+                }}
+              >
+                <Icon name="arrow-right" size={18} color="#62788a" style={{ marginRight: 8 }} />
+                <Text style={{ flex: 1, color: targetBin ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
+                  {targetBin || 'Select Destination Bin...'}
+                </Text>
+                <Icon name={showTargetDropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
+              </TouchableOpacity>
+
+              {showTargetDropdown && (
+                <View style={styles.dropdownListContainer}>
+                  <ScrollView nestedScrollEnabled style={{ maxHeight: hp(20) }}>
+                    {binsList.filter(b => b !== sourceBin).map((item, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={styles.dropdownListItem}
+                        onPress={() => {
+                          setTargetBin(item);
+                          setShowTargetDropdown(false);
+                        }}
+                      >
+                        <Text style={styles.dropdownListItemText}>{item}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </>
+          ) : (
+            <View style={styles.inputContainer}>
+              <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Scan Destination Bin RFID..."
+                value={targetBin}
+                editable={false}
+                placeholderTextColor="#62788a"
+              />
+              {targetBin ? (
+                <TouchableOpacity onPress={() => setTargetBin('')}>
+                  <Icon name="x" size={18} color="#62788a" />
+                </TouchableOpacity>
+              ) : null}
             </View>
           )}
 
@@ -440,11 +464,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: wp(3.5),
     marginBottom: hp(2),
   },
+  inputIcon: {
+    marginRight: 10,
+  },
   input: {
     flex: 1,
     paddingVertical: hp(1.4),
     fontFamily: 'Archivo', fontSize: wp(4),
     color: '#ecf1f4',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  checkboxLabel: {
+    color: '#ecf1f4',
+    fontFamily: 'Archivo',
+    fontSize: wp(3.8),
   },
   dropdownHeader: {
     flexDirection: 'row',

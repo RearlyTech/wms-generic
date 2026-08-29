@@ -39,7 +39,6 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
 
   const [warehouses, setWarehouses] = useState<string[]>([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
-  const [showBinDropdown, setShowBinDropdown] = useState(false);
 
   // Fetch warehouses on mount
   useEffect(() => {
@@ -192,40 +191,28 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.label}>Select / Scan Pallet</Text>
-          {loadingWarehouses ? (
-            <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1) }} />
-          ) : (
-            <TouchableOpacity
-              style={styles.dropdownHeader}
-              onPress={() => setShowBinDropdown(!showBinDropdown)}
-            >
-              <Icon name="archive" size={18} color="#62788a" style={{ marginRight: 8 }} />
-              <Text style={{ flex: 1, color: scannedRfid ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
-                {scannedRfid || 'Select/Scan Pallet...'}
-              </Text>
-              <Icon name={showBinDropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
-            </TouchableOpacity>
-          )}
-
-          {showBinDropdown && (
-            <View style={styles.dropdownListContainer}>
-              <ScrollView nestedScrollEnabled style={{ maxHeight: hp(20) }}>
-                {binsList.map((bin, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.dropdownListItem}
-                    onPress={() => {
-                      handleScanReceived(bin);
-                      setShowBinDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownListItemText}>{bin}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+          <Text style={styles.label}>Scanned Pallet RFID</Text>
+          <View style={styles.inputContainer}>
+            <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Waiting for Pallet RFID scan..."
+              value={scannedRfid}
+              editable={false}
+              placeholderTextColor="#62788a"
+            />
+            {scannedRfid ? (
+              <TouchableOpacity onPress={() => {
+                setScannedRfid('');
+                setOriginalWeight(null);
+                setItemName('');
+                setItemCode('');
+                setAmountUsed('');
+              }}>
+                <Icon name="x" size={18} color="#62788a" />
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
           {loadingItem && (
             <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1.5) }} />
@@ -433,7 +420,7 @@ const styles = StyleSheet.create({
     marginBottom: hp(2),
   },
   inputIcon: {
-    marginRight: wp(2),
+    marginRight: 10,
   },
   input: {
     flex: 1,

@@ -33,6 +33,9 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
   const [warehouses, setWarehouses] = useState<string[]>([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
   const [showBinDropdown, setShowBinDropdown] = useState(false);
+  
+  const [isManual, setIsManual] = useState(false);
+  const [scanStep, setScanStep] = useState<'item' | 'pallet'>('item');
 
   // Fetch warehouse list on mount
   useEffect(() => {
@@ -67,7 +70,12 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
 
   useEffect(() => {
     if (isFocused && rfid) {
-      setScannedRfid(rfid);
+      if (scanStep === 'item' || (!scannedRfid && scanStep === 'pallet')) {
+        setScannedRfid(rfid);
+        if (!isManual) setScanStep('pallet');
+      } else {
+        setPalletId(rfid);
+      }
       setSuccessMessage(null);
     }
   }, [rfid, isFocused]);
@@ -99,6 +107,7 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
         setSuccessMessage(`Successfully registered RFID tag [${scannedRfid}] on Pallet [${palletId}]!`);
         setScannedRfid('');
         setPalletId('');
+        setScanStep('item');
       } else {
         throw new Error('API server offline');
       }
@@ -106,6 +115,7 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
       setSuccessMessage(`[Simulated] Successfully assigned RFID tag [${scannedRfid}] to Pallet [${palletId}]!`);
       setScannedRfid('');
       setPalletId('');
+      setScanStep('item');
     } finally {
       setLoading(false);
     }
@@ -137,7 +147,12 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
         <View style={styles.instructionCard}>
           <Icon name="info" size={20} color="#3fbf75" style={{ marginRight: 8 }} />
           <Text style={styles.instructionText}>
-            Scan an RFID-labelled item, then assign which Pallet ID the item should be placed on.
+            {isManual 
+              ? 'Scan an RFID-labelled item, then manually select the target Pallet ID.'
+              : scanStep === 'item' 
+                ? 'Step 1: Scan an RFID-labelled item.'
+                : `Step 2: Scan the Target Pallet RFID for item [${scannedRfid}].`
+            }
           </Text>
         </View>
 
@@ -158,48 +173,94 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
             <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Waiting for RFID scan..."
+              placeholder="Waiting for Item RFID scan..."
               value={scannedRfid}
               editable={false}
               placeholderTextColor="#62788a"
             />
             {scannedRfid ? (
-              <TouchableOpacity onPress={() => setScannedRfid('')}>
+              <TouchableOpacity onPress={() => {
+                setScannedRfid('');
+                setScanStep('item');
+              }}>
                 <Icon name="x" size={18} color="#62788a" />
               </TouchableOpacity>
             ) : null}
           </View>
 
-          <Text style={styles.label}>Assign to Pallet ID</Text>
-          {loadingWarehouses ? (
-            <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1) }} />
-          ) : (
-            <TouchableOpacity
-              style={styles.dropdownHeader}
-              onPress={() => setShowBinDropdown(!showBinDropdown)}
-            >
-              <Icon name="box" size={18} color="#62788a" style={{ marginRight: 8 }} />
-              <Text style={{ flex: 1, color: palletId ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
-                {palletId || 'Select Target Pallet...'}
-              </Text>
-              <Icon name={showBinDropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
-            </TouchableOpacity>
-          )}
+          {/* MANUAL OVERRIDE CHECKBOX */}
+          <TouchableOpacity
+            style={styles.checkboxRow}
+            onPress={() => {
+              setIsManual(!isManual);
+              setPalletId('');
+              setShowBinDropdown(false);
+              if (isManual) {
+                // switching to auto (scanner)
+                setScanStep(scannedRfid ? 'pallet' : 'item');
+              }
+            }}
+          >
+            <Icon
+              name={isManual ? "check-square" : "square"}
+              size={22}
+              color={isManual ? "#3fbf75" : "#62788a"}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.checkboxLabel}>Manual Pallet Selection</Text>
+          </TouchableOpacity>
 
-          {showBinDropdown && (
-            <View style={styles.dropdownListInline}>
-              {binsList.map((bin, idx) => (
+          <Text style={styles.label}>Assign to Pallet ID</Text>
+          {isManual ? (
+            <>
+              {loadingWarehouses ? (
+                <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(1) }} />
+              ) : (
                 <TouchableOpacity
-                  key={idx}
-                  style={styles.dropdownListItem}
-                  onPress={() => {
-                    setPalletId(bin);
-                    setShowBinDropdown(false);
-                  }}
+                  style={styles.dropdownHeader}
+                  onPress={() => setShowBinDropdown(!showBinDropdown)}
                 >
-                  <Text style={styles.dropdownListItemText}>{bin}</Text>
+                  <Icon name="box" size={18} color="#62788a" style={{ marginRight: 8 }} />
+                  <Text style={{ flex: 1, color: palletId ? '#ecf1f4' : '#62788a', fontFamily: 'Archivo', fontSize: wp(4) }}>
+                    {palletId || 'Select Target Pallet...'}
+                  </Text>
+                  <Icon name={showBinDropdown ? "chevron-up" : "chevron-down"} size={20} color="#9db0bd" />
                 </TouchableOpacity>
-              ))}
+              )}
+
+              {showBinDropdown && (
+                <View style={styles.dropdownListInline}>
+                  {binsList.map((bin, idx) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.dropdownListItem}
+                      onPress={() => {
+                        setPalletId(bin);
+                        setShowBinDropdown(false);
+                      }}
+                    >
+                      <Text style={styles.dropdownListItemText}>{bin}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </>
+          ) : (
+            <View style={styles.inputContainer}>
+              <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Scan Pallet RFID..."
+                value={palletId}
+                editable={scanStep === 'pallet'}
+                onChangeText={(text) => setPalletId(text)}
+                placeholderTextColor="#62788a"
+              />
+              {palletId ? (
+                <TouchableOpacity onPress={() => setPalletId('')}>
+                  <Icon name="x" size={18} color="#62788a" />
+                </TouchableOpacity>
+              ) : null}
             </View>
           )}
 
@@ -223,23 +284,6 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
             <Text style={styles.successText}>{successMessage}</Text>
           </View>
         )}
-
-        {/* SIMULATOR CARD */}
-        {/* <View style={styles.simCard}>
-          <Text style={styles.simTitle}>Simulate RFID Scan (Developer Mode)</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter Tag ID to simulate scan"
-              value={simulatedRfid}
-              onChangeText={setSimulatedRfid}
-              placeholderTextColor="#62788a"
-            />
-            <TouchableOpacity style={styles.simButton} onPress={handleSimulateScan}>
-              <Text style={styles.simButtonText}>Simulate</Text>
-            </TouchableOpacity>
-          </View>
-        </View> */}
       </ScrollView>
     </View>
   );
@@ -333,19 +377,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#121b26',
     borderWidth: 1,
-    borderColor: '#121b26',
+    borderColor: '#283845',
     borderRadius: wp(3),
     paddingHorizontal: wp(3.5),
     marginBottom: hp(2),
   },
   inputIcon: {
-    marginRight: wp(2),
+    marginRight: 10,
   },
   input: {
     flex: 1,
     paddingVertical: hp(1.4),
     fontFamily: 'Archivo', fontSize: wp(4),
     color: '#ecf1f4',
+  },
+  checkboxRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  checkboxLabel: {
+    color: '#ecf1f4',
+    fontFamily: 'Archivo',
+    fontSize: wp(3.8),
   },
   dropdownHeader: {
     flexDirection: 'row',

@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import fastapi
 # ERP_URL = "https://erpnext-qvg-hla.m.frappe.cloud"
-ERP_URL = "http://192.168.29.59:8000"
+ERP_URL = "http://77.42.39.77:8080"
 
 # API_KEY = "6d03b8008c856ee"
 API_KEY = "fe91c1c285be2e8"

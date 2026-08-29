@@ -10,20 +10,9 @@ export type Item = {
     markedForDispatch?: boolean;
 };
 
-export type Bin = {
+export type WarehouseNode = {
     id: string;
     name: string;
     items: Item[];
-};
-
-export type Row = {
-    id: string;
-    name: string;
-    bins: Bin[];
-};
-
-export type Rack = {
-    id: string;
-    name: string;
-    rows: Row[];
+    children: WarehouseNode[];
 };

@@ -1137,8 +1137,17 @@ def api_get_warehouse_items(warehouse: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+metrics_cache = {
+    "data": {},
+    "last_fetched": 0
+}
+
 @router.get("/wms/dashboard-metrics")
 def get_dashboard_metrics():
+    global metrics_cache
+    if time.time() - metrics_cache["last_fetched"] < 60:
+        return metrics_cache["data"]
+
     from datetime import datetime, timedelta
     try:
         r_bin = requests.get(f'{ERP_URL}/api/resource/Bin?fields=["item_code","warehouse","actual_qty"]&limit_page_length=5000', headers=HEADERS)
@@ -1180,7 +1189,7 @@ def get_dashboard_metrics():
                 elif today <= exp_date <= thirty_days:
                     expiring_soon += 1
                     
-        return {
+        result = {
             "totalItems": len(unique_items),
             "totalStock": total_stock,
             "occupiedBins": len(occupied_bins),
@@ -1188,6 +1197,11 @@ def get_dashboard_metrics():
             "expiringSoon": expiring_soon,
             "expired": expired
         }
+        
+        metrics_cache["data"] = result
+        metrics_cache["last_fetched"] = time.time()
+        
+        return result
     except Exception as e:
         print("Error fetching dashboard metrics:", e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -1294,12 +1308,24 @@ def get_gateway_status(authorization: str = fastapi.Header(default=None)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+import time
+import concurrent.futures
+
+layout_cache = {
+    "data": {},
+    "last_fetched": 0
+}
+
 @router.get("/wms/warehouse-layout")
 def get_warehouse_layout():
+    global layout_cache
+    if time.time() - layout_cache["last_fetched"] < 60:
+        return layout_cache["data"]
+
     try:
-        r_wh = requests.get(f'{ERP_URL}/api/resource/Warehouse?fields=["name","parent_warehouse","is_group"]&limit_page_length=1000', headers=HEADERS)
-        r_bin = requests.get(f'{ERP_URL}/api/resource/Bin?fields=["item_code","warehouse","actual_qty"]&limit_page_length=1000', headers=HEADERS)
-        r_batch = requests.get(f'{ERP_URL}/api/resource/Batch?fields=["name","item","expiry_date","custom_marked_for_dispatch"]&limit_page_length=1000', headers=HEADERS)
+        r_wh = requests.get(f'{ERP_URL}/api/resource/Warehouse?fields=["name","parent_warehouse","is_group"]&limit_page_length=2000', headers=HEADERS)
+        r_bin = requests.get(f'{ERP_URL}/api/resource/Bin?fields=["item_code","warehouse","actual_qty"]&limit_page_length=5000', headers=HEADERS)
+        r_batch = requests.get(f'{ERP_URL}/api/resource/Batch?fields=["name","item","expiry_date","custom_marked_for_dispatch"]&limit_page_length=5000', headers=HEADERS)
         
         warehouses = r_wh.json().get("data", []) if r_wh.status_code == 200 else []
         bins = r_bin.json().get("data", []) if r_bin.status_code == 200 else []
@@ -1341,48 +1367,32 @@ def get_warehouse_layout():
                     children_map[pw] = []
                 children_map[pw].append(w)
                 
+        def build_tree(node_name):
+            children = children_map.get(node_name, [])
+            node_items = stock_map.get(node_name, [])
+            
+            node = {
+                "id": node_name,
+                "name": node_name.split(" - ")[0],
+                "items": node_items,
+                "children": []
+            }
+            
+            for child in children:
+                child_node = build_tree(child["name"])
+                node["children"].append(child_node)
+                
+            return node
+
         top_warehouses = [w for w in warehouses if w.get("parent_warehouse") == "All Warehouses - V"]
         
         result = {}
         for root in top_warehouses:
-            root_racks = []
-            racks = children_map.get(root["name"], [])
+            root_children = children_map.get(root["name"], [])
+            result[root["name"]] = [build_tree(child["name"]) for child in root_children]
             
-            for rack in racks:
-                rack_rows = []
-                rows = children_map.get(rack["name"], [])
-                
-                for row in rows:
-                    row_bins = []
-                    bins_nodes = children_map.get(row["name"], [])
-                    
-                    for bn in bins_nodes:
-                        row_bins.append({
-                            "id": bn["name"],
-                            "name": bn["name"].split(" - ")[0],
-                            "items": stock_map.get(bn["name"], [])
-                        })
-                        
-                    if len(row_bins) == 0 and len(stock_map.get(row["name"], [])) > 0:
-                        row_bins.append({
-                            "id": row["name"] + "_bin",
-                            "name": row["name"].split(" - ")[0],
-                            "items": stock_map.get(row["name"])
-                        })
-                        
-                    rack_rows.append({
-                        "id": row["name"],
-                        "name": row["name"].split(" - ")[0],
-                        "bins": row_bins
-                    })
-                    
-                root_racks.append({
-                    "id": rack["name"],
-                    "name": rack["name"].split(" - ")[0],
-                    "rows": rack_rows
-                })
-                
-            result[root["name"]] = root_racks
+        layout_cache["data"] = result
+        layout_cache["last_fetched"] = time.time()
             
         return result
     except Exception as e:
