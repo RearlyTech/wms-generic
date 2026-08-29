@@ -47,7 +47,7 @@ const FindPalletScreen = ({ navigation, route }: { navigation: any; route: any }
     const fetchWarehouses = async () => {
       try {
         setLoadingWarehouses(true);
-        const response = await fetch('http://192.168.29.113:8000/warehouses');
+        const response = await fetch('http://77.42.39.77:8000/warehouses');
         if (response.ok) {
           const json = await response.json();
           setWarehouses(json);
@@ -78,7 +78,7 @@ const FindPalletScreen = ({ navigation, route }: { navigation: any; route: any }
     setLocationResult(null);
 
     try {
-      const response = await fetch(`http://192.168.29.113:8000/wms/find?pallet_id=${encodeURIComponent(queryId)}`);
+      const response = await fetch(`http://77.42.39.77:8000/wms/find?pallet_id=${encodeURIComponent(queryId)}`);
       if (response.ok) {
         const json = await response.json();
         setLocationResult(json);

@@ -66,7 +66,7 @@ export default function EnergyDashboard() {
     { day: "Sun", energy: 85, target: 115 },
   ]);
 
-  const [backendUrl, setBackendUrl] = useState("http://localhost:8000");
+  const [backendUrl, setBackendUrl] = useState("http://77.42.39.77:8000");
 
   const [thresholds, setThresholds] = useState({ temperature: 30, humidity: 70, energy: 50 });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -95,7 +95,7 @@ export default function EnergyDashboard() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedUrl = localStorage.getItem("erp_backend_url") || "http://localhost:8000";
+      const savedUrl = localStorage.getItem("erp_backend_url") || "http://77.42.39.77:8000";
       setBackendUrl(savedUrl);
     }
   }, []);

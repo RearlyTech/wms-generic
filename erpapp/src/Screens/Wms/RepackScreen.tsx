@@ -45,7 +45,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
     const fetchWarehouses = async () => {
       try {
         setLoadingWarehouses(true);
-        const response = await fetch('http://192.168.29.113:8000/warehouses');
+        const response = await fetch('http://77.42.39.77:8000/warehouses');
         if (response.ok) {
           const json = await response.json();
           setWarehouses(json);
@@ -85,7 +85,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
     setLoadingItem(true);
 
     try {
-      const response = await fetch(`http://192.168.29.113:8000/wms/repack-lookup?id=${encodeURIComponent(scannedVal)}`);
+      const response = await fetch(`http://77.42.39.77:8000/wms/repack-lookup?id=${encodeURIComponent(scannedVal)}`);
       if (response.ok) {
         const json = await response.json();
         setItemName(json.item_name || json.item_code);
@@ -127,7 +127,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
     const remainingWeight = (originalWeight || 0.0) - parsedUsed;
 
     try {
-      const response = await fetch('http://192.168.29.113:8000/wms/repack', {
+      const response = await fetch('http://77.42.39.77:8000/wms/repack', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

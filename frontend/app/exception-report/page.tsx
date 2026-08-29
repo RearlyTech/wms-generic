@@ -18,14 +18,14 @@ import {
 
 export default function ExceptionReportPage() {
   const router = useRouter();
-  const [backendUrl, setBackendUrl] = useState("http://localhost:8000");
+  const [backendUrl, setBackendUrl] = useState("http://77.42.39.77:8000");
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedBackendUrl = localStorage.getItem("erp_backend_url") || "http://localhost:8000";
+      const savedBackendUrl = localStorage.getItem("erp_backend_url") || "http://77.42.39.77:8000";
       setBackendUrl(savedBackendUrl);
     }
   }, []);

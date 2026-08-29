@@ -38,7 +38,7 @@ const RetrieveScreen = ({ navigation, route }: { navigation: any; route: any }) 
     const fetchWarehouses = async () => {
       try {
         setLoadingWarehouses(true);
-        const response = await fetch('http://192.168.29.113:8000/warehouses');
+        const response = await fetch('http://77.42.39.77:8000/warehouses');
         if (response.ok) {
           const json = await response.json();
           setWarehouses(json);
@@ -78,7 +78,7 @@ const RetrieveScreen = ({ navigation, route }: { navigation: any; route: any }) 
     setSuccessMessage(null);
 
     try {
-      const response = await fetch('http://192.168.29.113:8000/wms/retrieve', {
+      const response = await fetch('http://77.42.39.77:8000/wms/retrieve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

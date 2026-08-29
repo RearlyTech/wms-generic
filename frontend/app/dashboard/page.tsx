@@ -38,14 +38,14 @@ interface DashboardMetrics {
 
 export default function WarehouseDashboard() {
   const router = useRouter();
-  const [backendUrl, setBackendUrl] = useState("http://localhost:8000");
+  const [backendUrl, setBackendUrl] = useState("http://77.42.39.77:8000");
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const savedUrl = localStorage.getItem("erp_backend_url") || "http://localhost:8000";
+      const savedUrl = localStorage.getItem("erp_backend_url") || "http://77.42.39.77:8000";
       setBackendUrl(savedUrl);
     }
   }, []);

@@ -132,9 +132,9 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
     const fetchAlarms = async () => {
       try {
         const [thRes, tempRes, energyRes] = await Promise.all([
-          fetch('http://192.168.29.113:8000/wms/thresholds'),
-          fetch('http://192.168.29.113:8000/api/temperature/live'),
-          fetch('http://192.168.29.113:8000/api/energy/live'),
+          fetch('http://77.42.39.77:8000/wms/thresholds'),
+          fetch('http://77.42.39.77:8000/api/temperature/live'),
+          fetch('http://77.42.39.77:8000/api/energy/live'),
         ]);
 
         const thresholds = await thRes.json();

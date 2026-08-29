@@ -49,7 +49,7 @@ export default function TemperatureDashboard() {
   const [historicalData, setHistoricalData] = useState<any[]>([]);
 
   // Assuming backend runs on 8000 in dev
-  const [backendUrl, setBackendUrl] = useState("http://localhost:8000");
+  const [backendUrl, setBackendUrl] = useState("http://77.42.39.77:8000");
 
   const [thresholds, setThresholds] = useState({ temperature: 30, humidity: 70, energy: 50 });
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);

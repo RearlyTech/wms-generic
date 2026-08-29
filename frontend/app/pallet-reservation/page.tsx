@@ -39,7 +39,7 @@ export default function PalletReservationPage() {
   const [error, setError] = useState<string | null>(null);
   
   const [selectedPallet, setSelectedPallet] = useState<string>("");
-  const [backendUrl, setBackendUrl] = useState("http://localhost:8000");
+  const [backendUrl, setBackendUrl] = useState("http://77.42.39.77:8000");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {

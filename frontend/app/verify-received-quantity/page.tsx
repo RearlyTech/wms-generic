@@ -33,7 +33,7 @@ export default function VerifyReceivedQuantityPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [pallets, setPallets] = useState<PalletSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [backendUrl, setBackendUrl] = useState("http://localhost:8000");
+  const [backendUrl, setBackendUrl] = useState("http://77.42.39.77:8000");
 
   useEffect(() => {
     if (typeof window !== "undefined") {

@@ -46,7 +46,7 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
     const fetchWarehouses = async () => {
       try {
         setLoadingWarehouses(true);
-        const response = await fetch('http://192.168.29.113:8000/warehouses');
+        const response = await fetch('http://77.42.39.77:8000/warehouses');
         if (response.ok) {
           const json = await response.json();
           setWarehouses(json);
@@ -72,7 +72,7 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
     setLoadingPallet(true);
 
     try {
-      const response = await fetch(`http://192.168.29.113:8000/wms/bin-pallet-lookup?bin_id=${encodeURIComponent(binVal)}`);
+      const response = await fetch(`http://77.42.39.77:8000/wms/bin-pallet-lookup?bin_id=${encodeURIComponent(binVal)}`);
       if (response.ok) {
         const json = await response.json();
         if (json.error) {
@@ -130,7 +130,7 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
     const palletKey = assignedPalletRfid !== 'N/A' ? assignedPalletRfid : assignedPalletName;
 
     try {
-      const response = await fetch('http://192.168.29.113:8000/wms/move', {
+      const response = await fetch('http://77.42.39.77:8000/wms/move', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

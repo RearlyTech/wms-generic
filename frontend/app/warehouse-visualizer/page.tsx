@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 
 export default function WarehouseVisualizerPage() {
     const router = useRouter();
-    const [backendUrl, setBackendUrl] = useState("http://localhost:8000");
+    const [backendUrl, setBackendUrl] = useState("http://77.42.39.77:8000");
     const [warehouses, setWarehouses] = useState<{id: string, name: string}[] | null>(null);
     const [racksMap, setRacksMap] = useState<Record<string, any> | null>(null);
     const [loading, setLoading] = useState(true);
@@ -15,7 +15,7 @@ export default function WarehouseVisualizerPage() {
 
     useEffect(() => {
         if (typeof window !== "undefined") {
-            const savedUrl = localStorage.getItem("erp_backend_url") || "http://localhost:8000";
+            const savedUrl = localStorage.getItem("erp_backend_url") || "http://77.42.39.77:8000";
             setBackendUrl(savedUrl);
         }
     }, []);

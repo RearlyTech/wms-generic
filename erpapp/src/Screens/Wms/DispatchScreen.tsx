@@ -55,7 +55,7 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
       }
       setValidating(true);
       try {
-        const url = `http://192.168.29.113:8000/wms/validate-dispatch?pallet_rfid=${encodeURIComponent(palletRfid.trim())}&item_rfid=${encodeURIComponent(itemRfid.trim())}`;
+        const url = `http://77.42.39.77:8000/wms/validate-dispatch?pallet_rfid=${encodeURIComponent(palletRfid.trim())}&item_rfid=${encodeURIComponent(itemRfid.trim())}`;
         const response = await fetch(url);
         if (response.ok) {
           const data = await response.json();
@@ -78,7 +78,7 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
   const fetchMarkedItems = async () => {
     setFetchingMarked(true);
     try {
-      const response = await fetch('http://192.168.29.113:8000/wms/marked-for-dispatch');
+      const response = await fetch('http://77.42.39.77:8000/wms/marked-for-dispatch');
       if (response.ok) {
         const data = await response.json();
         setMarkedItems(data || []);
@@ -114,7 +114,7 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
     setSuccessMessage(null);
 
     try {
-      const response = await fetch('http://192.168.29.113:8000/wms/dispatch', {
+      const response = await fetch('http://77.42.39.77:8000/wms/dispatch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

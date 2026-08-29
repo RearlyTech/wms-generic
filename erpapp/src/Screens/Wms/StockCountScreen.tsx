@@ -48,7 +48,7 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
   const handleScanRFID = async (tag: string) => {
     setIsResolving(true);
     try {
-      const response = await fetch(`http://192.168.29.113:8000/wms/resolve-tag-info?rfid=${encodeURIComponent(tag)}`);
+      const response = await fetch(`http://77.42.39.77:8000/wms/resolve-tag-info?rfid=${encodeURIComponent(tag)}`);
       if (response.ok) {
         const json = await response.json();
         

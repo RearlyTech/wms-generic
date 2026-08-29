@@ -27,7 +27,7 @@ const ExceptionReportScreen = ({ navigation }: { navigation: any }) => {
   const fetchActivityLogs = async () => {
     try {
       setLoadingLogs(true);
-      const response = await fetch('http://192.168.29.113:8000/wms/activity-log');
+      const response = await fetch('http://77.42.39.77:8000/wms/activity-log');
       if (response.ok) {
         const json = await response.json();
         setActivityLogs(json);

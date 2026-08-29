@@ -77,7 +77,7 @@ interface SlowMovingItem {
 export default function WarehouseCheckPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [backendUrl, setBackendUrl] = useState("http://localhost:8000");
+  const [backendUrl, setBackendUrl] = useState("http://77.42.39.77:8000");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // Data states

@@ -39,7 +39,7 @@ export default function FlagPallet({ navigation }: { navigation: any }) {
 
   const fetchRequests = async () => {
     try {
-      const res = await fetch('http://192.168.29.113:8000/wms/approval-requests');
+      const res = await fetch('http://77.42.39.77:8000/wms/approval-requests');
       const data = await res.json();
       if (data && data.requests) {
         // Sort newest first
@@ -58,7 +58,7 @@ export default function FlagPallet({ navigation }: { navigation: any }) {
     
     setLoading(true);
     try {
-      const res = await fetch('http://192.168.29.113:8000/wms/approval-requests', {
+      const res = await fetch('http://77.42.39.77:8000/wms/approval-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

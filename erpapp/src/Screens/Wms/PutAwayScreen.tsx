@@ -47,7 +47,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
     const fetchWarehouses = async () => {
       try {
         setLoadingWarehouses(true);
-        const response = await fetch('http://192.168.29.113:8000/wms/empty-bins');
+        const response = await fetch('http://77.42.39.77:8000/wms/empty-bins');
         if (response.ok) {
           const json = await response.json();
           setWarehouses(json);
@@ -96,7 +96,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
     }
     try {
       setLoadingEmptyBin(true);
-      const response = await fetch('http://192.168.29.113:8000/wms/first-empty-bin');
+      const response = await fetch('http://77.42.39.77:8000/wms/first-empty-bin');
       if (response.ok) {
         const json = await response.json();
         if (json.empty_bin) {
@@ -114,7 +114,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
     if (!selectedBin) return;
     try {
       setVerifyingBin(true);
-      const response = await fetch(`http://192.168.29.113:8000/wms/resolve-warehouse?rfid=${encodeURIComponent(binRfid.trim())}`);
+      const response = await fetch(`http://77.42.39.77:8000/wms/resolve-warehouse?rfid=${encodeURIComponent(binRfid.trim())}`);
       if (response.ok) {
         const json = await response.json();
         const resolvedName = json.warehouse;
@@ -156,7 +156,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
     setSuccessMessage(null);
 
     try {
-      const response = await fetch('http://192.168.29.113:8000/wms/put-away', {
+      const response = await fetch('http://77.42.39.77:8000/wms/put-away', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
