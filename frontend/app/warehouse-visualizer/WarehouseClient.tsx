@@ -90,15 +90,10 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
         setSelectedL3(l3);
     };
 
-    const drillDown = (node: WarehouseNode) => {
-        // If we drill down, we push the current L1 to the context path
-        // Wait, the context path should be the exact lineage.
-        // Current parent is either root, or the last node in viewContext.
-        // If we click L3 (which is a child of L2, which is a child of L1), 
-        // the new context path should append L1 and L2 to the existing viewContext.
-        if (selectedL1 && selectedL2) {
-            setViewContext([...viewContext, selectedL1, selectedL2]);
-            setCurrentL1Index(selectedL2.children.findIndex(c => c.id === node.id) || 0);
+    const drillDown = (l1Node: WarehouseNode, l2Node: WarehouseNode, node: WarehouseNode) => {
+        if (l1Node && l2Node) {
+            setViewContext([...viewContext, l1Node, l2Node]);
+            setCurrentL1Index(l2Node.children.findIndex(c => c.id === node.id) || 0);
         }
         clearSelection();
     };
@@ -402,7 +397,7 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                                                                         onClick={(e) => { 
                                                                             e.stopPropagation(); 
                                                                             if (hasChildren) {
-                                                                                drillDown(l3Node);
+                                                                                drillDown(l1Node, l2Node, l3Node);
                                                                             } else {
                                                                                 handleL3Click(l1Node, l2Node, l3Node);
                                                                             }
