@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   rfidText: {
-    fontFamily: 'Archivo', fontSize: normalize(15),
+    fontSize: normalize(15),
     color: '#3fbf75',
     fontFamily: 'monospace',
     marginTop: 2,

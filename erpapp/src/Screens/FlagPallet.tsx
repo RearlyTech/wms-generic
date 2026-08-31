@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
   },
   rfidText: {
     marginLeft: 15,
-    fontFamily: 'Archivo', fontSize: 16,
+    fontSize: 16,
     color: '#757575',
     fontFamily: 'monospace',
   },

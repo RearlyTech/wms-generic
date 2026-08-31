@@ -75,7 +75,7 @@ const ExceptionReportScreen = ({ navigation }: { navigation: any }) => {
               <Icon name="refresh-cw" size={16} color="#3fbf75" />
             </TouchableOpacity>
           </View>
-          
+
           {loadingLogs ? (
             <ActivityIndicator color="#3fbf75" style={{ marginVertical: hp(2) }} />
           ) : activityLogs.length > 0 ? (
@@ -98,10 +98,10 @@ const ExceptionReportScreen = ({ navigation }: { navigation: any }) => {
                 badgeColor = '#455A64';
                 badgeBg = '#ECEFF1';
               }
-              
+
               const formattedTime = log.creation ? log.creation.substring(11, 16) : '';
               const formattedDate = log.creation ? log.creation.substring(5, 10).replace('-', '/') : '';
-              
+
               return (
                 <View key={log.name} style={styles.logItem}>
                   <View style={styles.logItemTopRow}>
@@ -111,7 +111,7 @@ const ExceptionReportScreen = ({ navigation }: { navigation: any }) => {
                     <Text style={styles.logTimeText}>{formattedDate} {formattedTime}</Text>
                   </View>
                   <Text style={styles.logLocText}>
-                    Location/Target: <Text style={{fontWeight: '700', color: '#ecf1f4'}}>{log.target_location || 'N/A'}</Text>
+                    Location/Target: <Text style={{ fontWeight: '700', color: '#ecf1f4' }}>{log.target_location || 'N/A'}</Text>
                   </Text>
                   <Text style={styles.logDetailsText}>{log.details}</Text>
                   {log.old_tag && log.new_tag ? (
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
     marginTop: hp(0.8),
   },
   tagChangeText: {
-    fontFamily: 'Archivo', fontSize: wp(3.2),
+    fontSize: wp(3.2),
     color: '#9db0bd',
     fontFamily: 'monospace',
   },
