@@ -47,24 +47,16 @@ interface ChartData {
 export default function EnergyDashboard() {
   const router = useRouter();
   const [liveData, setLiveData] = useState<LiveData>({
-    time: "00:00:00",
-    voltage: "230.20",
-    frequency: "49.88",
-    activePower: "9.30",
-    powerFactor: "0.999",
+    time: "--:--:--",
+    voltage: "--",
+    frequency: "--",
+    activePower: "--",
+    powerFactor: "--",
   });
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
 
-  const [historicalData, setHistoricalData] = useState([
-    { day: "Mon", energy: 120, target: 115 },
-    { day: "Tue", energy: 135, target: 115 },
-    { day: "Wed", energy: 125, target: 115 },
-    { day: "Thu", energy: 140, target: 115 },
-    { day: "Fri", energy: 115, target: 115 },
-    { day: "Sat", energy: 90, target: 115 },
-    { day: "Sun", energy: 85, target: 115 },
-  ]);
+  const [historicalData, setHistoricalData] = useState<any[]>([]);
 
   const [backendUrl, setBackendUrl] = useState("http://77.42.39.77:8000");
 

@@ -17,9 +17,13 @@ def login_user(data: LoginRequest):
         "password": data.password
     }
     
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json",
+        "Content-Type": "application/json"
+    }
     session = requests.Session()
-    login_response = session.post("https://dev-directus.rearlytech.com/auth/login", json=payload)
-    
+    login_response = session.post("https://dev-directus.rearlytech.com/auth/login", json=payload, headers=headers)    
     if login_response.status_code != 200:
         print(f"Directus Login failed. Status: {login_response.status_code}, Response: {login_response.text}")
         raise HTTPException(
@@ -1209,7 +1213,9 @@ def get_dashboard_metrics():
 def get_door_status(authorization: str = fastapi.Header(default=None)):
     try:
         url = "https://dev-directus.rearlytech.com/items/gateway_sensor_readings?filter[sensor_type][_eq]=door_uart&limit=1&sort=-created_at&fields=door_status,raw_json"
-        headers = {}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
         if authorization:
             headers["Authorization"] = authorization
             
@@ -1241,15 +1247,16 @@ def get_door_status(authorization: str = fastapi.Header(default=None)):
                 }
             else:
                 print(f"door_status is failed (no data). Data: {data}")
+                return {"door_status": "Empty Data (Check Directus 'All Access' rule)", "alarm_status": "Empty", "amonia_status": "Empty"}
         elif response.status_code == 401:
             print(f"door_status is failed with status 401. Raising 401 to frontend.")
             raise HTTPException(status_code=401, detail="Directus token expired or invalid")
         else:
             print(f"door_status is failed with status {response.status_code}. Response: {response.text}")
-        return {"door_status": "Unknown", "alarm_status": "Unknown", "amonia_status": "Unknown"}
+            return {"door_status": f"HTTP {response.status_code} Error", "alarm_status": "Error", "amonia_status": "Error"}
     except Exception as e:
         print(f"Error fetching door status: {e}")
-        return {"door_status": "Unknown", "alarm_status": "Unknown", "amonia_status": "Unknown"}
+        return {"door_status": "Backend Exception", "alarm_status": "Error", "amonia_status": "Error"}
 
 @router.get("/wms/gateway-status")
 def get_gateway_status(authorization: str = fastapi.Header(default=None)):
@@ -1260,7 +1267,9 @@ def get_gateway_status(authorization: str = fastapi.Header(default=None)):
         sensor_status = {}
         gateway_online = False
         
-        headers = {}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
         if authorization:
             headers["Authorization"] = authorization
             
@@ -1430,7 +1439,9 @@ def get_root_warehouses():
 def get_energy_live(authorization: str = fastapi.Header(default=None)):
     try:
         url = "https://dev-directus.rearlytech.com/items/gateway_sensor_readings?filter[sensor_id][_eq]=energy_meter_1&limit=1&sort=-created_at&fields=voltage,frequency,active_power,power_factor,active_energy"
-        headers = {}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
         if authorization:
             headers["Authorization"] = authorization
             
@@ -1465,7 +1476,9 @@ def get_energy_history(authorization: str = fastapi.Header(default=None)):
         from datetime import datetime, timedelta
         seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%dT00:00:00Z")
         url = f"https://dev-directus.rearlytech.com/items/gateway_sensor_readings?filter[sensor_id][_eq]=energy_meter_1&filter[created_at][_gte]={seven_days_ago}&limit=-1&sort=-created_at&fields=active_energy,created_at"
-        headers = {}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
         if authorization:
             headers["Authorization"] = authorization
             
@@ -1501,7 +1514,9 @@ def get_energy_history(authorization: str = fastapi.Header(default=None)):
 def get_temperature_live(authorization: str = fastapi.Header(default=None)):
     try:
         url = "https://dev-directus.rearlytech.com/items/gateway_sensor_readings?filter[sensor_id][_eq]=ambient_xyth_1&limit=1&sort=-created_at&fields=temperature_c,humidity_rh"
-        headers = {}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
         if authorization:
             headers["Authorization"] = authorization
             
@@ -1533,7 +1548,9 @@ def get_temperature_history(authorization: str = fastapi.Header(default=None)):
         from datetime import datetime, timedelta
         seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%dT00:00:00Z")
         url = f"https://dev-directus.rearlytech.com/items/gateway_sensor_readings?filter[sensor_id][_eq]=ambient_xyth_1&filter[created_at][_gte]={seven_days_ago}&limit=-1&sort=-created_at&fields=temperature_c,humidity_rh,created_at"
-        headers = {}
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
         if authorization:
             headers["Authorization"] = authorization
             

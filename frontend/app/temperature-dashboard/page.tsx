@@ -40,9 +40,9 @@ interface ChartData {
 export default function TemperatureDashboard() {
   const router = useRouter();
   const [liveData, setLiveData] = useState<LiveData>({
-    time: "00:00:00",
-    temperature: "0.0",
-    humidity: "0.0",
+    time: "--:--:--",
+    temperature: "--",
+    humidity: "--",
   });
 
   const [chartData, setChartData] = useState<ChartData[]>([]);
