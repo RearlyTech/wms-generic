@@ -379,6 +379,12 @@ class LoginRequest(BaseModel):
     email: str
     password: str
 
+class WMSTaskSchema(BaseModel):
+    task_type: str
+    source_pallet: str
+    target_pallet: Optional[str] = None
+    notes: Optional[str] = None
+
 JWT_SECRET = "super-secret-key-change-in-production"
 JWT_ALGORITHM = "HS256"
 

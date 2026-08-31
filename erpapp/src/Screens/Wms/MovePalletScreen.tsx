@@ -19,12 +19,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBLE } from '../Blecontext';
 import { useIsFocused } from '@react-navigation/native';
 
-const MovePalletScreen = ({ navigation }: { navigation: any }) => {
+const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any }) => {
   const isFocused = useIsFocused();
   const { rfid, connectedDevice } = useBLE();
 
-  const [sourceBin, setSourceBin] = useState('');
-  const [targetBin, setTargetBin] = useState('');
+  const [sourceBin, setSourceBin] = useState(route?.params?.initialSourcePallet || '');
+  const [targetBin, setTargetBin] = useState(route?.params?.initialTargetPallet || '');
 
   const [assignedPalletName, setAssignedPalletName] = useState('');
   const [assignedPalletRfid, setAssignedPalletRfid] = useState('');
@@ -40,6 +40,31 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
 
   const [showTargetDropdown, setShowTargetDropdown] = useState(false);
   const [isManual, setIsManual] = useState(false);
+
+  const [activeTaskId, setActiveTaskId] = useState(route?.params?.taskId || null);
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
+  const [fetchingTasks, setFetchingTasks] = useState(false);
+
+  const fetchPendingTasks = async () => {
+    setFetchingTasks(true);
+    try {
+      const response = await fetch('http://77.42.39.77:8000/wms/mobile-tasks');
+      if (response.ok) {
+        const data = await response.json();
+        setPendingTasks(data.filter((t: any) => t.task_type === 'Move Pallet' && t.status === 'Pending'));
+      }
+    } catch (err) {
+      console.warn('Failed to fetch tasks', err);
+    } finally {
+      setFetchingTasks(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      fetchPendingTasks();
+    }
+  }, [isFocused]);
 
   // Fetch warehouses on mount
   useEffect(() => {
@@ -58,6 +83,10 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
       }
     };
     fetchWarehouses();
+    
+    if (route?.params?.initialSourcePallet) {
+      fetchPalletForBin(route.params.initialSourcePallet);
+    }
   }, []);
 
   const fallbackBins = ['Bin-01 - V', 'Bin-02 - V', 'Bin-03 - V'];
@@ -146,6 +175,18 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
         setTargetBin('');
         setAssignedPalletName('');
         setAssignedPalletRfid('');
+        
+        if (activeTaskId) {
+          try {
+            await fetch(`http://77.42.39.77:8000/wms/tasks/${activeTaskId}/complete`, {
+              method: 'PUT',
+            });
+            setActiveTaskId(null);
+            fetchPendingTasks();
+          } catch (e) {
+            console.error('Failed to complete task', e);
+          }
+        }
       } else {
         const errJson = await response.json().catch(() => ({}));
         throw new Error(errJson.detail || 'API request failed');
@@ -334,6 +375,43 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
             <Text style={styles.successText}>{successMessage}</Text>
           </View>
         )}
+
+        {/* PENDING TASKS QUEUE */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Icon name="list" size={20} color="#3fbf75" />
+            <Text style={styles.cardTitle}>Pending Move Tasks ({pendingTasks.length})</Text>
+          </View>
+          {fetchingTasks ? (
+            <ActivityIndicator color="#3fbf75" style={{ marginVertical: 10 }} />
+          ) : pendingTasks.length > 0 ? (
+            pendingTasks.map((task) => (
+              <TouchableOpacity 
+                key={task.name} 
+                style={styles.taskItem}
+                onPress={() => {
+                  setSourceBin(task.source_pallet || '');
+                  setTargetBin(task.target_pallet || '');
+                  setActiveTaskId(task.name);
+                  if (task.source_pallet) fetchPalletForBin(task.source_pallet);
+                }}
+              >
+                <View style={styles.taskHeader}>
+                  <Text style={styles.taskName}>{task.name}</Text>
+                  <Text style={styles.taskDate}>{new Date(task.creation).toLocaleDateString()}</Text>
+                </View>
+                <View style={styles.taskBody}>
+                  <Text style={styles.taskDetail}>Source: {task.source_pallet}</Text>
+                  <Text style={styles.taskDetail}>Target: {task.target_pallet}</Text>
+                  {task.notes && <Text style={styles.taskNotes}>Notes: {task.notes}</Text>}
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.emptyTasksText}>No pending tasks found.</Text>
+          )}
+        </View>
+
       </ScrollView>
     </View>
   );
@@ -545,7 +623,7 @@ const styles = StyleSheet.create({
     borderLeftColor: '#3fbf75',
   },
   successText: {
-    color: '#3fbf75',
+    color: '#000',
     fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
     flex: 1,
@@ -593,10 +671,65 @@ const styles = StyleSheet.create({
     color: '#9db0bd',
   },
   detailVal: {
-    fontFamily: 'Archivo', fontSize: wp(3.6),
+    fontFamily: 'Archivo', 
+    fontSize: wp(3.6),
     fontWeight: '700',
     color: '#ecf1f4',
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontFamily: 'Archivo',
+    fontSize: wp(4),
+    fontWeight: 'bold',
+    color: '#3fbf75',
+    marginLeft: 8,
+  },
+  taskItem: {
+    backgroundColor: '#1f2937',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3fbf75',
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  taskName: {
+    color: '#ecf1f4',
+    fontWeight: 'bold',
+    fontSize: wp(3.5),
+  },
+  taskDate: {
+    color: '#9db0bd',
+    fontSize: wp(3),
+  },
+  taskBody: {
+    flexDirection: 'column',
+  },
+  taskDetail: {
+    color: '#9db0bd',
+    fontSize: wp(3.5),
+  },
+  taskNotes: {
+    color: '#e0654f',
+    fontSize: wp(3.2),
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  emptyTasksText: {
+    color: '#9db0bd',
+    fontSize: wp(3.5),
+    textAlign: 'center',
+    marginTop: 10,
+    fontStyle: 'italic',
+  }
 });
 
 export default MovePalletScreen;

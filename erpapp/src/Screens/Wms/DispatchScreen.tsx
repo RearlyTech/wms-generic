@@ -19,16 +19,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBLE } from '../Blecontext';
 import { useIsFocused } from '@react-navigation/native';
 
-const DispatchScreen = ({ navigation }: { navigation: any }) => {
+const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any }) => {
   const isFocused = useIsFocused();
   const { rfid, connectedDevice } = useBLE();
 
-  const [palletRfid, setPalletRfid] = useState('');
+  const [palletRfid, setPalletRfid] = useState(route?.params?.initialSourcePallet || '');
   const [itemRfid, setItemRfid] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [markedItems, setMarkedItems] = useState<any[]>([]);
-  const [fetchingMarked, setFetchingMarked] = useState(false);
+  
+  const [activeTaskId, setActiveTaskId] = useState(route?.params?.taskId || null);
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
+  const [fetchingTasks, setFetchingTasks] = useState(false);
+
   const [isValidMatch, setIsValidMatch] = useState(false);
   const [validating, setValidating] = useState(false);
 
@@ -41,9 +44,9 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
       }
       setSuccessMessage(null);
     }
-    
+
     if (isFocused) {
-      fetchMarkedItems();
+      fetchPendingTasks();
     }
   }, [rfid, isFocused]);
 
@@ -75,18 +78,18 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
     return () => clearTimeout(timeoutId);
   }, [palletRfid, itemRfid]);
 
-  const fetchMarkedItems = async () => {
-    setFetchingMarked(true);
+  const fetchPendingTasks = async () => {
+    setFetchingTasks(true);
     try {
-      const response = await fetch('http://77.42.39.77:8000/wms/marked-for-dispatch');
+      const response = await fetch('http://77.42.39.77:8000/wms/mobile-tasks');
       if (response.ok) {
         const data = await response.json();
-        setMarkedItems(data || []);
+        setPendingTasks(data.filter((t: any) => t.task_type === 'Dispatch' && t.status === 'Pending'));
       }
     } catch (err) {
-      console.warn('Failed to fetch marked items', err);
+      console.warn('Failed to fetch pending tasks', err);
     } finally {
-      setFetchingMarked(false);
+      setFetchingTasks(false);
     }
   };
 
@@ -95,20 +98,14 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
       Alert.alert('Error', 'Please scan both the Bin/Pallet RFID and the Item RFID.');
       return;
     }
-    
+
     if (!isValidMatch) {
       Alert.alert('Error', 'Scanned items do not match any marked-for-dispatch bin/item.');
       return;
     }
-    
-    // Check if there are any marked items
-    if (markedItems.length > 0) {
-      // Find if the scanned tag matches any marked item's locations
-      // Note: In reality we'd resolve the tag to a bin first using API, 
-      // but for mobile-side validation, we'll allow the backend to reject it too.
-      // We will perform a basic check here or let the backend reject.
-      // Let's rely on the backend to actually dispatch, but we can do a local warning.
-    }
+
+    // If we have an active task selected, we should rely on the task details, 
+    // but the backend dispatch validate should be enough.
 
     setLoading(true);
     setSuccessMessage(null);
@@ -127,7 +124,19 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
         setSuccessMessage(`Successfully dispatched Item from Bin!`);
         setPalletRfid('');
         setItemRfid('');
-        fetchMarkedItems(); // Refresh the list
+        
+        if (activeTaskId) {
+          try {
+            await fetch(`http://77.42.39.77:8000/wms/tasks/${activeTaskId}/complete`, {
+              method: 'PUT',
+            });
+            setActiveTaskId(null);
+          } catch (e) {
+            console.error('Failed to complete task', e);
+          }
+        }
+        
+        fetchPendingTasks(); // Refresh the list
       } else {
         const errJson = await response.json().catch(() => ({}));
         const errMsg = errJson.detail || 'Failed to dispatch';
@@ -137,6 +146,20 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
       Alert.alert('Dispatch Failed', 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCompleteTask = async () => {
+    if (activeTaskId) {
+      try {
+        await fetch(`http://77.42.39.77:8000/wms/tasks/${activeTaskId}/complete`, {
+          method: 'PUT',
+        });
+        setActiveTaskId(null);
+        fetchPendingTasks();
+      } catch (e) {
+        console.error('Failed to complete task', e);
+      }
     }
   };
 
@@ -151,6 +174,13 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
           <Icon name="arrow-left" size={24} color="#ecf1f4" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Dispatch Item</Text>
+        {route?.params?.taskId ? (
+          <TouchableOpacity onPress={handleCompleteTask} style={{ padding: 4 }}>
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Done</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 24 }} />
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -170,34 +200,35 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
           </View>
         </View>
 
-        <View style={styles.queueContainer}>
-          <View style={styles.queueHeader}>
-            <Text style={styles.queueTitle}>Marked for Dispatch Queue</Text>
-            {fetchingMarked && <ActivityIndicator size="small" color="#3fbf75" />}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Icon name="list" size={20} color="#3fbf75" />
+            <Text style={styles.cardTitle}>Pending Dispatch Tasks ({pendingTasks.length})</Text>
           </View>
-          
-          {markedItems.length === 0 ? (
-            <Text style={styles.emptyQueueText}>
-              {fetchingMarked ? 'Loading queue...' : 'No items marked for dispatch.'}
-            </Text>
-          ) : (
-            markedItems.map((item, index) => (
-              <View key={index} style={styles.queueItemCard}>
-                <View style={styles.queueItemRow}>
-                  <Icon name="package" size={16} color="#3fbf75" style={{ marginRight: 6 }} />
-                  <Text style={styles.queueItemCode}>{item.item_code} - {item.batch_number}</Text>
+          {fetchingTasks ? (
+            <ActivityIndicator color="#3fbf75" style={{ marginVertical: 10 }} />
+          ) : pendingTasks.length > 0 ? (
+            pendingTasks.map((task) => (
+              <TouchableOpacity 
+                key={task.name} 
+                style={styles.taskItem}
+                onPress={() => {
+                  setPalletRfid(task.source_pallet || '');
+                  setActiveTaskId(task.name);
+                }}
+              >
+                <View style={styles.taskHeader}>
+                  <Text style={styles.taskName}>{task.name}</Text>
+                  <Text style={styles.taskDate}>{new Date(task.creation).toLocaleDateString()}</Text>
                 </View>
-                {item.locations && item.locations.length > 0 ? (
-                  item.locations.map((loc: any, lidx: number) => (
-                    <Text key={lidx} style={styles.queueLocationText}>
-                      Bin: {loc.warehouse} (Qty: {loc.actual_qty})
-                    </Text>
-                  ))
-                ) : (
-                  <Text style={styles.queueLocationText}>No locations found</Text>
-                )}
-              </View>
+                <View style={styles.taskBody}>
+                  <Text style={styles.taskDetail}>Source Location: {task.source_pallet}</Text>
+                  {task.notes && <Text style={styles.taskNotes}>Notes: {task.notes}</Text>}
+                </View>
+              </TouchableOpacity>
             ))
+          ) : (
+            <Text style={styles.emptyTasksText}>No pending tasks found.</Text>
           )}
         </View>
 
@@ -218,7 +249,7 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
               </TouchableOpacity>
             ) : null}
           </View>
-          
+
           <Text style={styles.label}>2. Scan Item</Text>
           <View style={styles.inputContainer}>
             <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
@@ -392,64 +423,65 @@ const styles = StyleSheet.create({
     borderLeftColor: '#3fbf75',
   },
   successText: {
-    color: '#3fbf75',
+    color: '#000',
     fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
     flex: 1,
   },
-  queueContainer: {
-    backgroundColor: '#121b26',
-    borderRadius: wp(4),
-    padding: wp(4),
-    marginBottom: hp(2),
-    elevation: 2,
-    shadowColor: '#ecf1f4',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  queueHeader: {
+  cardTitle: {
+    fontFamily: 'Archivo',
+    fontSize: wp(4),
+    fontWeight: 'bold',
+    color: '#3fbf75',
+    marginLeft: 8,
+  },
+  taskItem: {
+    backgroundColor: '#1f2937',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3fbf75',
+  },
+  taskHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: hp(1.5),
+    marginBottom: 6,
   },
-  queueTitle: {
-    fontFamily: 'Archivo', fontSize: wp(4),
-    fontWeight: '700',
+  taskName: {
     color: '#ecf1f4',
+    fontWeight: 'bold',
+    fontSize: wp(3.5),
   },
-  emptyQueueText: {
-    fontFamily: 'Archivo', fontSize: wp(3.5),
-    color: '#62788a',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    paddingVertical: hp(2),
-  },
-  queueItemCard: {
-    backgroundColor: '#121b26',
-    borderWidth: 1,
-    borderColor: '#121b26',
-    borderRadius: wp(2),
-    padding: wp(3),
-    marginBottom: hp(1),
-  },
-  queueItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: hp(0.5),
-  },
-  queueItemCode: {
-    fontFamily: 'Archivo', fontSize: wp(3.5),
-    fontWeight: '600',
-    color: '#ecf1f4',
-  },
-  queueLocationText: {
-    fontFamily: 'Archivo', fontSize: wp(3.2),
+  taskDate: {
     color: '#9db0bd',
-    marginLeft: wp(5.5),
-    marginTop: hp(0.2),
+    fontSize: wp(3),
   },
+  taskBody: {
+    flexDirection: 'column',
+  },
+  taskDetail: {
+    color: '#9db0bd',
+    fontSize: wp(3.5),
+  },
+  taskNotes: {
+    color: '#e0654f',
+    fontSize: wp(3.2),
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  emptyTasksText: {
+    color: '#9db0bd',
+    fontSize: wp(3.5),
+    textAlign: 'center',
+    marginTop: 10,
+    fontStyle: 'italic',
+  }
 });
 
 export default DispatchScreen;

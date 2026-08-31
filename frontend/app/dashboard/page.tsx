@@ -25,6 +25,7 @@ import {
   Settings,
   BellRing,
   ShieldCheck,
+  LayoutList
 } from "lucide-react";
 
 interface DashboardMetrics {
@@ -535,6 +536,17 @@ export default function WarehouseDashboard() {
               </div>
               <h3 className="text-base font-bold text-teal-900 mb-1">Pallet Reservation</h3>
               <p className="text-xs font-medium text-teal-700">Manage reserved stock & locations.</p>
+            </button>
+
+            <button
+              onClick={() => router.push("/task-manager")}
+              className="flex flex-col items-start p-6 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-2xl transition-colors text-left group"
+            >
+              <div className="w-10 h-10 rounded-lg bg-indigo-600 flex items-center justify-center mb-3 shadow-md group-hover:scale-105 transition-transform">
+                <LayoutList className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="text-base font-bold text-indigo-900 mb-1">Task Manager</h3>
+              <p className="text-xs font-medium text-indigo-700">Assign WMS tasks to mobile workers.</p>
             </button>
           </div>
         </section>

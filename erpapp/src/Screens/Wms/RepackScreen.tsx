@@ -230,8 +230,8 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
           <Text style={styles.label}>
             Amount Consumed / Used ({itemUom})
           </Text>
-          <View style={styles.inputContainer}>
-            <Icon name="edit-3" size={18} color="#62788a" style={styles.inputIcon} />
+          <View style={[styles.inputContainer, { borderColor: '#3fbf75', backgroundColor: '#18242f' }]}>
+            <Icon name="edit-3" size={18} color="#3fbf75" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
               placeholder="Enter weight/qty used"
@@ -517,7 +517,7 @@ const styles = StyleSheet.create({
     borderLeftColor: '#3fbf75',
   },
   successText: {
-    color: '#3fbf75',
+    color: '#000',
     fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
     flex: 1,

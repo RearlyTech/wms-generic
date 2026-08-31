@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     borderLeftColor: '#3fbf75',
   },
   successText: {
-    color: '#3fbf75',
+    color: '#000',
     fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
     flex: 1,

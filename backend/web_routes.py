@@ -1332,7 +1332,7 @@ def get_warehouse_layout():
         return layout_cache["data"]
 
     try:
-        r_wh = requests.get(f'{ERP_URL}/api/resource/Warehouse?fields=["name","parent_warehouse","is_group"]&limit_page_length=2000', headers=HEADERS)
+        r_wh = requests.get(f'{ERP_URL}/api/resource/Warehouse?fields=["name","parent_warehouse","is_group","custom_marked_for_dispatch"]&limit_page_length=2000', headers=HEADERS)
         r_bin = requests.get(f'{ERP_URL}/api/resource/Bin?fields=["item_code","warehouse","actual_qty"]&limit_page_length=5000', headers=HEADERS)
         r_batch = requests.get(f'{ERP_URL}/api/resource/Batch?fields=["name","item","expiry_date","custom_marked_for_dispatch"]&limit_page_length=5000', headers=HEADERS)
         
@@ -1379,11 +1379,12 @@ def get_warehouse_layout():
         def build_tree(node_name):
             children = children_map.get(node_name, [])
             node_items = stock_map.get(node_name, [])
-            
+            node_wh_obj = next((w for w in warehouses if w["name"] == node_name), {})
             node = {
                 "id": node_name,
                 "name": node_name.split(" - ")[0],
                 "items": node_items,
+                "markedForDispatch": node_wh_obj.get("custom_marked_for_dispatch") == 1,
                 "children": []
             }
             
@@ -1419,6 +1420,57 @@ def api_wms_mark_dispatch(batch_no: str):
         if r.status_code >= 400:
             raise HTTPException(status_code=r.status_code, detail=r.text)
         return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/wms/mark-pallet-dispatch/{pallet_id}")
+def api_wms_mark_pallet_dispatch(pallet_id: str):
+    try:
+        # Resolve to internal name if it's an RFID or simple ID
+        if " - " not in pallet_id:
+            pallet_id = f"{pallet_id} - V"
+        
+        r = requests.put(
+            f"{ERP_URL}/api/resource/Warehouse/{pallet_id}",
+            headers=HEADERS,
+            json={"custom_marked_for_dispatch": 1}
+        )
+        if r.status_code >= 400:
+            raise HTTPException(status_code=r.status_code, detail=r.text)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/wms/tasks")
+def api_create_wms_task(data: WMSTaskSchema):
+    try:
+        payload = {
+            "task_type": data.task_type,
+            "status": "Pending",
+            "source_pallet": data.source_pallet,
+            "target_pallet": data.target_pallet,
+            "notes": data.notes
+        }
+        return erp_post("WMS Task", payload)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/wms/tasks")
+def api_get_wms_tasks(status: str = "Pending"):
+    try:
+        r = requests.get(
+            f'{ERP_URL}/api/resource/WMS Task',
+            headers=HEADERS,
+            params={
+                "fields": '["name", "task_type", "status", "source_pallet", "target_pallet", "notes", "creation"]',
+                "filters": json.dumps([["status", "=", status]]),
+                "order_by": "creation desc",
+                "limit_page_length": 100
+            }
+        )
+        if r.status_code == 200:
+            return r.json().get("data", [])
+        return []
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

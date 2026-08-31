@@ -56,6 +56,14 @@ const WMS_ACTIONS = [
     color: '#00BCD4',
   },
   {
+    id: 'receive',
+    title: 'Receive pallet',
+    description: 'Register incoming pallets and items',
+    icon: 'download',
+    route: 'ReceivePallet',
+    color: '#4CAF50',
+  },
+  {
     id: 'repack',
     title: 'Repack pallet',
     description: 'Repack remaining stock in a bin',

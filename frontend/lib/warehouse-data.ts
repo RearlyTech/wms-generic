@@ -14,5 +14,6 @@ export type WarehouseNode = {
     id: string;
     name: string;
     items: Item[];
+    markedForDispatch?: boolean;
     children: WarehouseNode[];
 };

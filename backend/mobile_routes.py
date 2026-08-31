@@ -120,6 +120,33 @@ def api_wms_put_away(data: WmsPutAwaySchema):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/wms/mobile-tasks")
+def api_get_mobile_tasks():
+    try:
+        r = requests.get(
+            f'{ERP_URL}/api/resource/WMS Task',
+            headers=HEADERS,
+            params={
+                "fields": '["name", "task_type", "status", "source_pallet", "target_pallet", "notes", "creation"]',
+                "filters": json.dumps([["status", "=", "Pending"]]),
+                "order_by": "creation asc",
+                "limit_page_length": 100
+            }
+        )
+        if r.status_code == 200:
+            return r.json().get("data", [])
+        return []
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/wms/tasks/{task_id}/complete")
+def api_complete_wms_task(task_id: str):
+    try:
+        payload = {"status": "Completed"}
+        return erp_put("WMS Task", task_id, payload)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/wms/retrieve")
 def api_wms_retrieve(data: WmsRetrieveSchema):
     try:
@@ -488,7 +515,18 @@ def api_wms_validate_dispatch(pallet_rfid: str, item_rfid: str):
             headers=HEADERS, 
             params={"filters": json.dumps([["item", "=", item_code], ["custom_marked_for_dispatch", "=", 1]]), "fields": '["name"]'}
         )
-        if dispatch_marked.status_code != 200 or not dispatch_marked.json().get("data"):
+        
+        # Verify pallet is marked for dispatch
+        wh_dispatch_marked = requests.get(
+            f"{ERP_URL}/api/resource/Warehouse",
+            headers=HEADERS,
+            params={"filters": json.dumps([["name", "=", warehouse_tag], ["custom_marked_for_dispatch", "=", 1]]), "fields": '["name"]'}
+        )
+        
+        is_batch_marked = dispatch_marked.status_code == 200 and dispatch_marked.json().get("data")
+        is_wh_marked = wh_dispatch_marked.status_code == 200 and wh_dispatch_marked.json().get("data")
+        
+        if not is_batch_marked and not is_wh_marked:
              return {"valid": False}
              
         return {"valid": True}
@@ -537,7 +575,30 @@ def api_wms_marked_for_dispatch():
                 "expiry_date": b.get("expiry_date", ""),
                 "locations": locations
             })
-            
+        # Fetch warehouses marked for dispatch
+        r_wh = requests.get(
+            f"{ERP_URL}/api/resource/Warehouse",
+            headers=HEADERS,
+            params={
+                "filters": json.dumps([["custom_marked_for_dispatch", "=", 1]]),
+                "fields": '["name", "warehouse_name"]',
+                "limit_page_length": 500
+            }
+        )
+        if r_wh.status_code == 200:
+            warehouses = r_wh.json().get("data", [])
+            for w in warehouses:
+                result.append({
+                    "is_pallet": True,
+                    "pallet_id": w["name"],
+                    "batch_number": "PALLET DISPATCH",
+                    "item_code": w.get("warehouse_name", w["name"]),
+                    "item_name": w.get("warehouse_name", w["name"]),
+                    "batch_qty": 0,
+                    "expiry_date": "",
+                    "locations": [{"warehouse": w["name"], "actual_qty": "All Items"}]
+                })
+                
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -574,30 +635,55 @@ def api_wms_dispatch(data: WmsDispatchSchema):
         
         # Check if the item's batch is marked for dispatch
         dispatch_marked = requests.get(
-            f"{ERP_URL}/api/resource/Batch", 
-            headers=HEADERS, 
+            f"{ERP_URL}/api/resource/Batch",
+            headers=HEADERS,
             params={"filters": json.dumps([["item", "=", item_code], ["custom_marked_for_dispatch", "=", 1]]), "fields": '["name"]'}
         )
         
-        if dispatch_marked.status_code != 200 or not dispatch_marked.json().get("data"):
-             raise Exception(f"Item {item_code} is not marked for dispatch.")
-             
-        dispatch_marked_bins = dispatch_marked.json().get("data", [])
+        # Check if the pallet is marked for dispatch
+        wh_dispatch_marked = requests.get(
+            f"{ERP_URL}/api/resource/Warehouse",
+            headers=HEADERS,
+            params={"filters": json.dumps([["name", "=", warehouse_tag], ["custom_marked_for_dispatch", "=", 1]]), "fields": '["name"]'}
+        )
         
+        is_batch_marked = dispatch_marked.status_code == 200 and dispatch_marked.json().get("data")
+        is_wh_marked = wh_dispatch_marked.status_code == 200 and wh_dispatch_marked.json().get("data")
+        
+        if not is_batch_marked and not is_wh_marked:
+             raise Exception(f"Item {item_code} and its Pallet are not marked for dispatch.")
+             
+        # Find which items are in this location and have sufficient quantity
+        # For a batched dispatch, we would strictly dispatch the marked batches
+        # For a pallet dispatch, we dispatch the scanned item
+        payload = {
+            "stock_entry_type": "Material Issue",
+            "company": company,
+            "items": []
+        }
         items_to_issue = [{
             "item_code": item_code,
             "qty": qty,
             "s_warehouse": warehouse_tag
         }]
         
-        # Unmark the batch
-        for d_batch in dispatch_marked_bins:
+        # If it was a batch dispatch, unmark the batches
+        if is_batch_marked:
+            for d_batch in dispatch_marked.json().get("data", []):
+                try:
+                    erp_put("Batch", d_batch["name"], {"custom_marked_for_dispatch": 0})
+                except Exception:
+                    pass
+                    
+        # If it was a pallet dispatch, unmark the pallet
+        if is_wh_marked:
             try:
-                erp_put("Batch", d_batch["name"], {"custom_marked_for_dispatch": 0})
+                erp_put("Warehouse", warehouse_tag, {"custom_marked_for_dispatch": 0})
             except Exception:
                 pass
-            
-        # Build Stock Entry (Material Issue) payload
+                
+        # Optional: Disable pallet entirely if empty
+        # if total_remaining <= 0:
         items_payload = []
         for it in items_to_issue:
             uom = "Nos"

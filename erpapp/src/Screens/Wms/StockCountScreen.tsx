@@ -28,7 +28,7 @@ interface ScannedItem {
   is_reserved?: boolean;
 }
 
-const StockCountScreen = ({ navigation }: { navigation: any }) => {
+const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any }) => {
   const isFocused = useIsFocused();
   const { rfid, connectedDevice } = useBLE();
 
@@ -39,11 +39,57 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
   const [selectedItemDetail, setSelectedItemDetail] = useState<any | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
 
+  const [activeTaskId, setActiveTaskId] = useState(route?.params?.taskId || null);
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
+  const [fetchingTasks, setFetchingTasks] = useState(false);
+
+  const fetchPendingTasks = async () => {
+    setFetchingTasks(true);
+    try {
+      const response = await fetch('http://77.42.39.77:8000/wms/mobile-tasks');
+      if (response.ok) {
+        const data = await response.json();
+        setPendingTasks(data.filter((t: any) => t.task_type === 'Stock Count' && t.status === 'Pending'));
+      }
+    } catch (err) {
+      console.warn('Failed to fetch tasks', err);
+    } finally {
+      setFetchingTasks(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isFocused) {
+      fetchPendingTasks();
+    }
+  }, [isFocused]);
+
   useEffect(() => {
     if (isFocused && rfid) {
       handleScanRFID(rfid);
     }
   }, [rfid, isFocused]);
+
+  useEffect(() => {
+    if (route?.params?.initialSourcePallet) {
+      handleScanRFID(route.params.initialSourcePallet);
+    }
+  }, []);
+
+  const handleCompleteTask = async () => {
+    if (activeTaskId) {
+      try {
+        await fetch(`http://77.42.39.77:8000/wms/tasks/${activeTaskId}/complete`, {
+          method: 'PUT',
+        });
+        setActiveTaskId(null);
+        fetchPendingTasks();
+        Alert.alert('Task Completed', 'The stock count task was marked as completed.');
+      } catch (e) {
+        console.error('Failed to complete task', e);
+      }
+    }
+  };
 
   const handleScanRFID = async (tag: string) => {
     setIsResolving(true);
@@ -127,6 +173,13 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
           <Icon name="arrow-left" size={24} color="#ecf1f4" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Stock Count</Text>
+        {activeTaskId ? (
+          <TouchableOpacity onPress={handleCompleteTask} style={{ padding: 4 }}>
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Done</Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 24 }} />
+        )}
       </View>
 
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -231,6 +284,39 @@ const StockCountScreen = ({ navigation }: { navigation: any }) => {
               <Text style={styles.emptyHistoryText}>Scan items to see them here...</Text>
             )}
           </View>
+        </View>
+
+        {/* PENDING TASKS QUEUE */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Icon name="list" size={20} color="#3fbf75" />
+            <Text style={styles.cardTitle}>Pending Count Tasks ({pendingTasks.length})</Text>
+          </View>
+          {fetchingTasks ? (
+            <ActivityIndicator color="#3fbf75" style={{ marginVertical: 10 }} />
+          ) : pendingTasks.length > 0 ? (
+            pendingTasks.map((task) => (
+              <TouchableOpacity 
+                key={task.name} 
+                style={styles.taskItem}
+                onPress={() => {
+                  setActiveTaskId(task.name);
+                  if (task.source_pallet) handleScanRFID(task.source_pallet);
+                }}
+              >
+                <View style={styles.taskHeader}>
+                  <Text style={styles.taskName}>{task.name}</Text>
+                  <Text style={styles.taskDate}>{new Date(task.creation).toLocaleDateString()}</Text>
+                </View>
+                <View style={styles.taskBody}>
+                  <Text style={styles.taskDetail}>Location to Count: {task.source_pallet}</Text>
+                  {task.notes && <Text style={styles.taskNotes}>Notes: {task.notes}</Text>}
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : (
+            <Text style={styles.emptyTasksText}>No pending tasks found.</Text>
+          )}
         </View>
 
       </ScrollView>
@@ -426,6 +512,71 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 6,
+  },
+  card: {
+    backgroundColor: '#121b26',
+    borderRadius: wp(4),
+    padding: wp(5),
+    elevation: 3,
+    shadowColor: '#ecf1f4',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    marginBottom: hp(3),
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontFamily: 'Archivo',
+    fontSize: wp(4),
+    fontWeight: 'bold',
+    color: '#3fbf75',
+    marginLeft: 8,
+  },
+  taskItem: {
+    backgroundColor: '#1f2937',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3fbf75',
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  taskName: {
+    color: '#ecf1f4',
+    fontWeight: 'bold',
+    fontSize: wp(3.5),
+  },
+  taskDate: {
+    color: '#9db0bd',
+    fontSize: wp(3),
+  },
+  taskBody: {
+    flexDirection: 'column',
+  },
+  taskDetail: {
+    color: '#9db0bd',
+    fontSize: wp(3.5),
+  },
+  taskNotes: {
+    color: '#e0654f',
+    fontSize: wp(3.2),
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  emptyTasksText: {
+    color: '#9db0bd',
+    fontSize: wp(3.5),
+    textAlign: 'center',
+    marginTop: 10,
+    fontStyle: 'italic',
   },
   historyHeader: {
     flexDirection: 'row',

@@ -146,6 +146,17 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
             setMarkingBatch(null);
         }
     }
+    
+    const markPalletForDispatch = async (palletId: string) => {
+        setMarkingBatch(palletId);
+        try {
+            await fetch(`${backendUrl}/wms/mark-pallet-dispatch/${palletId}`, { method: "PUT", mode: "cors" });
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setMarkingBatch(null);
+        }
+    }
 
     if (!selectedWarehouse) {
         const filteredWarehouses = initialWarehouses.filter(w => 
@@ -422,8 +433,24 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                                                                     </span>
 
                                                                     {isL3Selected && !isEmpty && !hasChildren && (
-                                                                        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-30 w-48 pointer-events-none ring-1 ring-black/5">
-                                                                            <h5 className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 border-b border-slate-100 pb-1">Contents</h5>
+                                                                        <div 
+                                                                            className="absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-30 w-48 ring-1 ring-black/5"
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                        >
+                                                                            <div className="flex justify-between items-center mb-2 border-b border-slate-100 pb-1">
+                                                                                <h5 className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Contents</h5>
+                                                                                {l3Node.markedForDispatch ? (
+                                                                                    <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Marked</span>
+                                                                                ) : (
+                                                                                    <button 
+                                                                                        onClick={async () => await markPalletForDispatch(l3Node.id)}
+                                                                                        disabled={markingBatch === l3Node.id}
+                                                                                        className="text-[9px] font-bold text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded transition-colors disabled:opacity-50 flex items-center gap-1"
+                                                                                    >
+                                                                                        {markingBatch === l3Node.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Dispatch Pallet"}
+                                                                                    </button>
+                                                                                )}
+                                                                            </div>
                                                                             <div className="flex flex-col gap-2">
                                                                                 {l3Items.map(item => (
                                                                                     <div key={item.itemCode} className="flex flex-col mb-1 last:mb-0">
