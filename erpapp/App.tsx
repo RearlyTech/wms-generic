@@ -24,6 +24,7 @@ import FlagPallet from './src/Screens/FlagPallet';
 import LoginScreen from './src/Screens/LoginScreen';
 import DoorMonitor from './src/common/DoorMonitor';
 import { getItem } from './src/Storage/Storage';
+import { navigationRef } from "./src/lib/navigation";
 
 enableScreens(true);
 
@@ -37,7 +38,7 @@ function App() {
     <SafeAreaProvider>
       <BLEProvider>
         <DoorMonitor>
-          <NavigationContainer>
+          <NavigationContainer ref={navigationRef}>
             <Stack.Navigator
               initialRouteName={initialRoute}
               screenOptions={{ headerShown: false }}

@@ -6,6 +6,7 @@ import {
 } from '@directus/sdk';
 
 import { getItem, setItem, removeItem } from '../Storage/Storage';
+import { navigateToLogin } from './navigation';
 
 // export const API_URL = 'http://192.168.1.108:8055';
 
@@ -59,6 +60,9 @@ export const directus = createDirectus(API_URL)
             removeItem('refreshToken');
             removeItem('expires');
             removeItem('expires_at');
+
+            // Forcefully redirect to Login screen
+            navigateToLogin();
           }
         }
       }

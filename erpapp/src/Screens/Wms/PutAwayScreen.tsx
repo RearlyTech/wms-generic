@@ -118,7 +118,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
       if (response.ok) {
         const json = await response.json();
         const resolvedName = json.warehouse;
-        
+
         // Normalize names for comparison (remove hyphens, spaces, casing)
         const normalize = (val: string) => val.toLowerCase().replace(/[- ]/g, '').trim();
         if (normalize(resolvedName) === normalize(selectedBin)) {

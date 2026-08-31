@@ -21,6 +21,7 @@ const { width, height } = Dimensions.get('window');
 import { normalize } from '../common/String/fontsize';
 import { useBLE } from './Blecontext';
 import usePermissions from './userpermission';
+import { removeItem } from '../Storage/Storage';
 const baseSize = width * 0.55;
 import {
   heightPercentageToDP as hp,
@@ -114,6 +115,14 @@ const Scan = ({ navigation }: { navigation: any }) => {
     }
   };
 
+  const handleLogout = () => {
+    removeItem('authToken');
+    removeItem('refreshToken');
+    removeItem('expires');
+    removeItem('expires_at');
+    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+  };
+
   useEffect(() => {
     requestPermissions1();
   }, []);
@@ -132,6 +141,9 @@ const Scan = ({ navigation }: { navigation: any }) => {
     <View style={{ flex: 1, width: '100%' }}>
       <View style={styles.Header}>
         <Text style={styles.Text1}>{t('Scan') || 'Scan'}</Text>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Icon name="sign-out" size={24} color="#ecf1f4" />
+        </TouchableOpacity>
       </View>
       {rfid ? (
         <View style={styles.rfidBanner}>
@@ -397,6 +409,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     elevation: 4,
     width: '100%',
+  },
+  logoutButton: {
+    position: 'absolute',
+    right: 20,
+    padding: 10,
   },
   backButtonContainer: {
     flexDirection: 'row',
