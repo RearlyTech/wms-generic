@@ -14,14 +14,15 @@ def api_wms_receive(data: WmsReceiveSchema):
     try:
         item_code = resolve_item_from_rfid(data.item_rfid)
         source_wh = get_item_source_warehouse(item_code)
-        se = perform_stock_transfer(item_code, 1.0, source_wh, data.pallet_id)
+        target_pallet = resolve_warehouse_from_rfid(data.pallet_id)
+        se = perform_stock_transfer(item_code, 1.0, source_wh, target_pallet)
         
         # Log activity in ERPNext
         try:
             log_wms_activity(
                 activity_type="Location Move",
                 operator="System",
-                target_location=data.pallet_id,
+                target_location=target_pallet,
                 old_tag=data.item_rfid,
                 details=f"Received item {item_code} and assigned to Pallet {data.pallet_id}"
             )
@@ -737,8 +738,8 @@ def api_wms_stock_count(data: WmsStockCountSchema):
         company_abbr = get_company_abbr(company)
         
         target_warehouse = data.warehouse
-        if target_warehouse and " - " not in target_warehouse:
-            target_warehouse = f"{target_warehouse} - {company_abbr}"
+        if target_warehouse:
+            target_warehouse = resolve_warehouse_from_rfid(target_warehouse)
             
         items_payload = []
         

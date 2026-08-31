@@ -91,12 +91,11 @@ const RetrieveScreen = ({ navigation, route }: { navigation: any; route: any }) 
         setPalletRfid('');
         setValidatedBin(null);
       } else {
-        throw new Error('API server offline');
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'API request failed');
       }
-    } catch (err) {
-      setSuccessMessage(`[Simulated] Successfully retrieved Bin [${palletRfid}] from Location [${validatedBin || 'RACK-01/SHELF-A'}]!`);
-      setPalletRfid('');
-      setValidatedBin(null);
+    } catch (err: any) {
+      Alert.alert('Retrieve Failed', 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }

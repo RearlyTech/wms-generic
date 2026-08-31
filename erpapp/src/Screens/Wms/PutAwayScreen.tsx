@@ -175,15 +175,10 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
       } else {
         const errJson = await response.json().catch(() => ({}));
         const errMsg = errJson.detail || 'Failed to put away';
-        Alert.alert('ERPNext Error', errMsg);
+        Alert.alert('ERPNext Error', 'Operation failed. Please try again.');
       }
-    } catch (err) {
-      setSuccessMessage(`[Simulated] Successfully assigned Pallet [${palletRfid}] to Bin [${selectedBin}]!`);
-      setPalletRfid('');
-      setSelectedBin('');
-      setScannedBinRfid('');
-      setIsBinVerified(null);
-      setScanStep('pallet');
+    } catch (err: any) {
+      Alert.alert('Put Away Failed', 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }

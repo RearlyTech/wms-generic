@@ -151,17 +151,11 @@ const MergePalletsScreen = ({ navigation }: { navigation: any }) => {
         setMergeQty('');
         setActiveInput('A');
       } else {
-        throw new Error('API server offline');
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'API request failed');
       }
-    } catch (err) {
-      setSuccessMessage(`[Simulated] Merged ${parsedQty} ${itemUom} of [${itemName}] from Pallet [${palletA}] to Pallet [${palletB}]!`);
-      setPalletA('');
-      setPalletB('');
-      setItemName('');
-      setItemCode('');
-      setAvailableQty(null);
-      setMergeQty('');
-      setActiveInput('A');
+    } catch (err: any) {
+      Alert.alert('Merge Failed', 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -147,16 +147,11 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
         setItemCode('');
         setAmountUsed('');
       } else {
-        throw new Error('API server offline');
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'API request failed');
       }
-    } catch (err) {
-      setSuccessMessage(`[Simulated] Repack successful! Used ${parsedUsed} ${itemUom} of ${itemName}. Remaining ${remainingWeight.toFixed(2)} ${itemUom} repacked under tag [${newRfid || scannedRfid}].`);
-      setScannedRfid('');
-      setNewRfid('');
-      setOriginalWeight(null);
-      setItemName('');
-      setItemCode('');
-      setAmountUsed('');
+    } catch (err: any) {
+      Alert.alert('Repack Failed', 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -147,14 +147,11 @@ const MovePalletScreen = ({ navigation }: { navigation: any }) => {
         setAssignedPalletName('');
         setAssignedPalletRfid('');
       } else {
-        throw new Error('API server offline');
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'API request failed');
       }
-    } catch (err) {
-      setSuccessMessage(`[Simulated] Successfully moved Pallet [${assignedPalletName}] to Bin [${targetBin}]!`);
-      setSourceBin('');
-      setTargetBin('');
-      setAssignedPalletName('');
-      setAssignedPalletRfid('');
+    } catch (err: any) {
+      Alert.alert('Move Failed', 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }

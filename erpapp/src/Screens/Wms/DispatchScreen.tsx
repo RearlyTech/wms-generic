@@ -131,13 +131,10 @@ const DispatchScreen = ({ navigation }: { navigation: any }) => {
       } else {
         const errJson = await response.json().catch(() => ({}));
         const errMsg = errJson.detail || 'Failed to dispatch';
-        Alert.alert('ERPNext Error', errMsg);
+        Alert.alert('ERPNext Error', 'Operation failed. Please try again.');
       }
-    } catch (err) {
-      setSuccessMessage(`[Simulated] Successfully dispatched Item from Bin!`);
-      setPalletRfid('');
-      setItemRfid('');
-      fetchMarkedItems(); // Refresh the list
+    } catch (err: any) {
+      Alert.alert('Dispatch Failed', 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }

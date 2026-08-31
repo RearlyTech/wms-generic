@@ -33,7 +33,7 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
   const [warehouses, setWarehouses] = useState<string[]>([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
   const [showBinDropdown, setShowBinDropdown] = useState(false);
-  
+
   const [isManual, setIsManual] = useState(false);
   const [scanStep, setScanStep] = useState<'item' | 'pallet'>('item');
 
@@ -109,13 +109,11 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
         setPalletId('');
         setScanStep('item');
       } else {
-        throw new Error('API server offline');
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.detail || 'API request failed');
       }
-    } catch (err) {
-      setSuccessMessage(`[Simulated] Successfully assigned RFID tag [${scannedRfid}] to Pallet [${palletId}]!`);
-      setScannedRfid('');
-      setPalletId('');
-      setScanStep('item');
+    } catch (err: any) {
+      Alert.alert('Assignment Failed', 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -147,9 +145,9 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
         <View style={styles.instructionCard}>
           <Icon name="info" size={20} color="#3fbf75" style={{ marginRight: 8 }} />
           <Text style={styles.instructionText}>
-            {isManual 
+            {isManual
               ? 'Scan an RFID-labelled item, then manually select the target Pallet ID.'
-              : scanStep === 'item' 
+              : scanStep === 'item'
                 ? 'Step 1: Scan an RFID-labelled item.'
                 : `Step 2: Scan the Target Pallet RFID for item [${scannedRfid}].`
             }
@@ -459,7 +457,7 @@ const styles = StyleSheet.create({
     borderLeftColor: '#3fbf75',
   },
   successText: {
-    color: '#3fbf75',
+    color: '#000',
     fontFamily: 'Archivo', fontSize: wp(3.8),
     fontWeight: '600',
     flex: 1,

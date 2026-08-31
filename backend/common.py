@@ -575,7 +575,8 @@ def perform_stock_transfer(item_code: str, qty: float, source_warehouse: str, ta
                 "qty": qty,
                 "s_warehouse": source_warehouse,
                 "t_warehouse": target_warehouse,
-                "uom": "Nos"
+                "uom": "Nos",
+                "allow_zero_valuation_rate": 1
             }
         ]
     }
