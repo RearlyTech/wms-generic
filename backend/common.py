@@ -561,6 +561,11 @@ def get_item_source_warehouse(item_code: str) -> str:
         )
         if r.status_code == 200:
             data = r.json().get("data", [])
+            # Prioritize main warehouses by filtering out Pallets and Bins
+            main_whs = [d["warehouse"] for d in data if "pallet" not in d["warehouse"].lower() and "bin" not in d["warehouse"].lower()]
+            if main_whs:
+                return main_whs[0]
+            # Fallback if only found in Pallets/Bins
             if data:
                 return data[0]["warehouse"]
     except Exception:
