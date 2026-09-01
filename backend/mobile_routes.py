@@ -768,6 +768,13 @@ def api_wms_repack_lookup(id: str):
                         "qty": qty,
                         "uom": uom
                     }
+                else:
+                    return {
+                        "item_code": "Empty",
+                        "item_name": "Pallet is Empty",
+                        "qty": 0.0,
+                        "uom": "-"
+                    }
         
         # If it's not a warehouse, try resolving it as an item RFID
         item_code = resolve_item_from_rfid(id)
@@ -1036,4 +1043,3 @@ def api_wms_resolve_tag_info(rfid: str):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

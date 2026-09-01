@@ -86,7 +86,7 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
       }
     };
     fetchWarehouses();
-    
+
     if (route?.params?.initialSourcePallet) {
       fetchPalletADetails(route.params.initialSourcePallet);
     }
@@ -418,8 +418,8 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
             <ActivityIndicator color="#3fbf75" style={{ marginVertical: 10 }} />
           ) : pendingTasks.length > 0 ? (
             pendingTasks.map((task) => (
-              <TouchableOpacity 
-                key={task.name} 
+              <TouchableOpacity
+                key={task.name}
                 style={styles.taskItem}
                 onPress={() => {
                   setPalletA(task.source_pallet || '');
@@ -682,7 +682,7 @@ const styles = StyleSheet.create({
   detailVal: {
     fontFamily: 'Archivo', fontSize: wp(3.6),
     fontWeight: '700',
-    fontStyle: 'italic',
+    color: '#ecf1f4',
   },
   cardHeader: {
     flexDirection: 'row',

@@ -29,6 +29,7 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   const [activeTaskId, setActiveTaskId] = useState(route?.params?.taskId || null);
+  const [expectedPalletRfid, setExpectedPalletRfid] = useState('');
   const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const [fetchingTasks, setFetchingTasks] = useState(false);
 
@@ -97,6 +98,13 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
     if (!palletRfid.trim() || !itemRfid.trim()) {
       Alert.alert('Error', 'Please scan both the Bin/Pallet RFID and the Item RFID.');
       return;
+    }
+
+    if (activeTaskId && expectedPalletRfid) {
+      if (palletRfid.trim() !== expectedPalletRfid) {
+        Alert.alert('Validation Error', `Scanned location must match the selected task location: ${expectedPalletRfid}`);
+        return;
+      }
     }
 
     if (!isValidMatch) {
@@ -211,9 +219,12 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
             pendingTasks.map((task) => (
               <TouchableOpacity 
                 key={task.name} 
-                style={styles.taskItem}
+                style={[
+                  styles.taskItem,
+                  activeTaskId === task.name && { borderColor: '#3fbf75', borderWidth: 2 }
+                ]}
                 onPress={() => {
-                  setPalletRfid(task.source_pallet || '');
+                  setExpectedPalletRfid(task.source_pallet || '');
                   setActiveTaskId(task.name);
                 }}
               >

@@ -262,7 +262,7 @@ export default function TaskManager() {
                   onChange={(e) => setNewTask({ ...newTask, source_pallet: e.target.value })}
                 >
                   <option value="" disabled>Select Source</option>
-                  {(newTask.task_type === "Move Pallet" || newTask.task_type === "Stock Count" ? bins : newTask.task_type === "Merge Pallets" ? pallets : [...bins, ...pallets]).map((loc) => (
+                  {(newTask.task_type === "Move Pallet" || newTask.task_type === "Stock Count" ? bins : (newTask.task_type === "Merge Pallets" || newTask.task_type === "Dispatch") ? pallets : [...bins, ...pallets]).map((loc) => (
                     <option key={loc} value={loc}>{loc}</option>
                   ))}
                 </select>
