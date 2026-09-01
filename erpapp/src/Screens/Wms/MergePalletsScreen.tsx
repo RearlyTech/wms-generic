@@ -31,7 +31,6 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
   const [itemName, setItemName] = useState('');
   const [availableQty, setAvailableQty] = useState<number | null>(null);
   const [itemUom, setItemUom] = useState('Nos');
-  const [mergeQty, setMergeQty] = useState('');
   const [loadingItem, setLoadingItem] = useState(false);
 
   const [simulatedRfid, setSimulatedRfid] = useState('');
@@ -145,15 +144,6 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
       Alert.alert('Error', 'Source and target pallets cannot be the same.');
       return;
     }
-    const parsedQty = parseFloat(mergeQty);
-    if (isNaN(parsedQty) || parsedQty <= 0) {
-      Alert.alert('Error', 'Please enter a valid quantity to merge.');
-      return;
-    }
-    if (availableQty !== null && parsedQty > availableQty) {
-      Alert.alert('Error', `Quantity to merge cannot exceed available quantity (${availableQty} ${itemUom}).`);
-      return;
-    }
 
     setLoading(true);
     setSuccessMessage(null);
@@ -166,18 +156,16 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
           pallet_a: palletA,
           pallet_b: palletB,
           item_code: itemCode,
-          qty: parsedQty,
         }),
       });
 
       if (response.ok) {
-        setSuccessMessage(`Successfully merged ${parsedQty} ${itemUom} of [${itemName}] from Pallet [${palletA}] to Pallet [${palletB}]!`);
+        setSuccessMessage(`Successfully merged all ${availableQty || ''} ${itemUom} of [${itemName}] from Pallet [${palletA}] to Pallet [${palletB}]!`);
         setPalletA('');
         setPalletB('');
         setItemName('');
         setItemCode('');
         setAvailableQty(null);
-        setMergeQty('');
         setActiveInput('A');
 
         if (activeTaskId) {
@@ -263,7 +251,6 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
                 setItemName('');
                 setItemCode('');
                 setAvailableQty(null);
-                setMergeQty('');
                 setActiveInput('A');
               }}>
                 <Icon name="x" size={18} color="#62788a" />
@@ -369,24 +356,6 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
               ) : null}
             </View>
           )}
-
-          {/* Quantity to Merge */}
-          {itemName ? (
-            <>
-              <Text style={styles.label}>Quantity to Merge ({itemUom})</Text>
-              <View style={[styles.inputContainer, { marginBottom: hp(2) }]}>
-                <Icon name="edit-2" size={18} color="#62788a" style={{ marginRight: 8 }} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter quantity to transfer"
-                  value={mergeQty}
-                  onChangeText={setMergeQty}
-                  keyboardType="numeric"
-                  placeholderTextColor="#62788a"
-                />
-              </View>
-            </>
-          ) : null}
 
           <TouchableOpacity
             style={[styles.primaryButton, loading && styles.disabledButton]}

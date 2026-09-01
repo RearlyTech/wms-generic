@@ -287,7 +287,7 @@ def api_wms_repack(data: WmsRepackSchema):
                 r = requests.get(
                     f"{ERP_URL}/api/resource/Bin",
                     headers=HEADERS,
-                    params={"filters": json.dumps([["warehouse", "=", src_wh], ["actual_qty", ">", 0]]), "fields": '["item_code"]'}
+                    params={"filters": json.dumps([["warehouse", "=", src_wh], ["actual_qty", ">", 0]]), "fields": '["item_code", "actual_qty"]'}
                 )
                 if r.status_code == 200:
                     items_in_wh = r.json().get("data", [])
@@ -295,12 +295,27 @@ def api_wms_repack(data: WmsRepackSchema):
                 pass
             if items_in_wh:
                 item_code = items_in_wh[0]["item_code"]
+                actual_qty = float(items_in_wh[0].get("actual_qty", 1.0))
             else:
                 item_code = resolve_latest_doc("Item", [["is_stock_item", "=", 1]]) or "Maida Flour"
+                actual_qty = 1.0
         else:
             # It's an RFID tag. Resolve the item and find where it has stock
             item_code = resolve_item_from_rfid(data.item_rfid)
             src_wh = get_item_source_warehouse(item_code)
+            actual_qty = 1.0
+            try:
+                r = requests.get(
+                    f"{ERP_URL}/api/resource/Bin",
+                    headers=HEADERS,
+                    params={"filters": json.dumps([["warehouse", "=", src_wh], ["item_code", "=", item_code]]), "fields": '["actual_qty"]'}
+                )
+                if r.status_code == 200:
+                    bin_data = r.json().get("data", [])
+                    if bin_data:
+                        actual_qty = float(bin_data[0].get("actual_qty", 1.0))
+            except Exception:
+                pass
         
         # 1. Perform Material Issue of amount_used
         payload = {
@@ -311,7 +326,7 @@ def api_wms_repack(data: WmsRepackSchema):
             "items": [
                 {
                     "item_code": item_code,
-                    "qty": data.amount_used,
+                    "qty": actual_qty,
                     "s_warehouse": src_wh,
                     "uom": "Nos"
                 }
@@ -361,7 +376,7 @@ def api_wms_repack(data: WmsRepackSchema):
                 target_location=src_wh,
                 old_tag=data.item_rfid,
                 new_tag=data.new_rfid or data.item_rfid,
-                details=f"Repacked {item_code}. Consumed {data.amount_used} Nos. Remaining {data.remaining_weight} Nos."
+                details=f"Repacked {item_code}. Consumed all {actual_qty} Nos."
             )
         except Exception:
             pass
@@ -379,7 +394,22 @@ def api_wms_merge(data: WmsMergeSchema):
         src_wh = resolve_warehouse_from_rfid(data.pallet_a)
         dest_wh = resolve_warehouse_from_rfid(data.pallet_b)
         
-        se = perform_stock_transfer(data.item_code, data.qty, src_wh, dest_wh)
+        # Determine quantity from source warehouse
+        actual_qty = 1.0
+        try:
+            r = requests.get(
+                f"{ERP_URL}/api/resource/Bin",
+                headers=HEADERS,
+                params={"filters": json.dumps([["warehouse", "=", src_wh], ["item_code", "=", data.item_code]]), "fields": '["actual_qty"]'}
+            )
+            if r.status_code == 200:
+                bin_data = r.json().get("data", [])
+                if bin_data:
+                    actual_qty = float(bin_data[0].get("actual_qty", 1.0))
+        except Exception:
+            pass
+        
+        se = perform_stock_transfer(data.item_code, actual_qty, src_wh, dest_wh)
         
         # Log activity in ERPNext
         try:
@@ -389,7 +419,7 @@ def api_wms_merge(data: WmsMergeSchema):
                 target_location=dest_wh,
                 old_tag=data.pallet_a,
                 new_tag=data.pallet_b,
-                details=f"Merged: Transferred {data.qty} of {data.item_code} from Pallet {src_wh} to Pallet {dest_wh}"
+                details=f"Merged: Transferred all {actual_qty} of {data.item_code} from Pallet {src_wh} to Pallet {dest_wh}"
             )
         except Exception:
             pass

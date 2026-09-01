@@ -279,15 +279,18 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
           </View>
 
           <TouchableOpacity
-            style={[styles.primaryButton, (loading || validating || !isValidMatch || !palletRfid || !itemRfid) && styles.disabledButton]}
+            style={[
+              styles.primaryButton, 
+              (loading || validating || !isValidMatch || !palletRfid || !itemRfid || (!!activeTaskId && !!expectedPalletRfid && palletRfid.trim() !== expectedPalletRfid)) && styles.disabledButton
+            ]}
             onPress={handleDispatch}
-            disabled={loading || validating || !isValidMatch || !palletRfid || !itemRfid}
+            disabled={loading || validating || !isValidMatch || !palletRfid || !itemRfid || (!!activeTaskId && !!expectedPalletRfid && palletRfid.trim() !== expectedPalletRfid)}
           >
             {loading || validating ? (
               <ActivityIndicator color="#0a0f16" />
             ) : (
               <Text style={styles.primaryButtonText}>
-                {!isValidMatch && palletRfid && itemRfid ? "Mismatch - Cannot Dispatch" : "Dispatch Item"}
+                {(!isValidMatch && palletRfid && itemRfid) || (!!activeTaskId && !!expectedPalletRfid && palletRfid.trim() !== expectedPalletRfid) ? "Mismatch - Cannot Dispatch" : "Dispatch Item"}
               </Text>
             )}
           </TouchableOpacity>

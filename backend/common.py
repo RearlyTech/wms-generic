@@ -474,8 +474,6 @@ class WmsMoveSchema(BaseModel):
 
 class WmsRepackSchema(BaseModel):
     item_rfid: str
-    amount_used: float
-    remaining_weight: float
     new_rfid: Optional[str] = None
 
 class WmsSplitSchema(BaseModel):
@@ -488,7 +486,6 @@ class WmsMergeSchema(BaseModel):
     pallet_a: str
     pallet_b: str
     item_code: str
-    qty: float
 
 class WmsExceptionSchema(BaseModel):
     target_rfid: str

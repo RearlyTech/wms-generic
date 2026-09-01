@@ -108,23 +108,12 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
 
   const handleRepack = async () => {
     if (!scannedRfid) {
-      Alert.alert('Error', 'Please select or scan a pallet RFID.');
-      return;
-    }
-    const parsedUsed = parseFloat(amountUsed);
-    if (isNaN(parsedUsed) || parsedUsed <= 0) {
-      Alert.alert('Error', 'Please enter a valid amount used (greater than 0).');
-      return;
-    }
-    if (originalWeight !== null && parsedUsed > originalWeight) {
-      Alert.alert('Error', `Amount used cannot exceed current stock quantity (${originalWeight} ${itemUom}).`);
+      Alert.alert('Validation Error', 'Please scan a pallet or item RFID to repack.');
       return;
     }
 
     setLoading(true);
     setSuccessMessage(null);
-
-    const remainingWeight = (originalWeight || 0.0) - parsedUsed;
 
     try {
       const response = await fetch('http://77.42.39.77:8000/wms/repack', {
@@ -132,14 +121,12 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           item_rfid: scannedRfid,
-          amount_used: parsedUsed,
-          remaining_weight: remainingWeight,
           new_rfid: newRfid || undefined,
         }),
       });
 
       if (response.ok) {
-        setSuccessMessage(`Successfully repacked! Used ${parsedUsed} ${itemUom}. Remaining ${remainingWeight.toFixed(2)} ${itemUom} is mapped to tag [${newRfid || scannedRfid}].`);
+        setSuccessMessage(`Successfully repacked! Remaining ${originalWeight} ${itemUom} is mapped to tag [${newRfid || scannedRfid}].`);
         setScannedRfid('');
         setNewRfid('');
         setOriginalWeight(null);
@@ -225,35 +212,6 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
               </View>
             </View>
           ) : null}
-
-          {/* Amount input */}
-          <Text style={styles.label}>
-            Amount Consumed / Used ({itemUom})
-          </Text>
-          <View style={[styles.inputContainer, { borderColor: '#3fbf75', backgroundColor: '#18242f' }]}>
-            <Icon name="edit-3" size={18} color="#3fbf75" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Enter weight/qty used"
-              value={amountUsed}
-              onChangeText={setAmountUsed}
-              keyboardType="numeric"
-              placeholderTextColor="#62788a"
-            />
-          </View>
-
-          {/* Live Remaining Calculation for Repack */}
-          {originalWeight !== null && amountUsed && parseFloat(amountUsed) > 0 && (
-            <View style={styles.calcRow}>
-              <Icon name="pie-chart" size={16} color="#9db0bd" style={{ marginRight: 6 }} />
-              <Text style={styles.calcText}>
-                Remaining after repack:{' '}
-                <Text style={{ fontWeight: '700', color: '#3fbf75' }}>
-                  {Math.max(0, originalWeight - parseFloat(amountUsed)).toFixed(2)} {itemUom}
-                </Text>
-              </Text>
-            </View>
-          )}
 
           {/* New RFID Tag Input (Only when an item is scanned) */}
           {scannedRfid ? (
