@@ -1474,6 +1474,13 @@ def api_get_wms_tasks(status: str = "Pending"):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.put("/wms/tasks/{task_id}/complete")
+def api_complete_wms_task(task_id: str):
+    try:
+        return erp_put("WMS Task", task_id, {"status": "Completed"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/wms/root-warehouses")
 def get_root_warehouses():
     try:
@@ -1858,6 +1865,28 @@ def resolve_approval_request(request_id: str, resolution: ApprovalResolution):
     raise HTTPException(status_code=404, detail="Request not found")
 
 # --- NATIVE PALLET RESERVATION SYSTEM ---
+
+
+@router.get("/wms/bins/all")
+def get_all_bins():
+    """Get all active bins (Warehouses without pallet in name and not a group)"""
+    try:
+        url = f"{ERP_URL}/api/resource/Warehouse?fields=[\"name\",\"warehouse_name\",\"is_group\"]&limit_page_length=0"
+        response = requests.get(url, headers=HEADERS)
+        response.raise_for_status()
+        data = response.json().get("data", [])
+        
+        bins = []
+        for w in data:
+            wh_name = w.get("warehouse_name", "").lower()
+            name = w.get("name", "").lower()
+            if "pallet" not in wh_name and "pallet" not in name:
+                if "bin" in wh_name or "bin" in name:
+                    bins.append(w)
+        return {"success": True, "bins": bins}
+    except Exception as e:
+        print("Error fetching all bins:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/wms/pallets/all")
 def get_all_pallets():

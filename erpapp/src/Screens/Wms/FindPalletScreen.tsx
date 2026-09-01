@@ -154,9 +154,9 @@ const FindPalletScreen = ({ navigation, route }: { navigation: any; route: any }
 
         <View style={styles.statusRow}>
           <View style={styles.connectionBadge}>
-            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : '#e0654f' }]} />
+            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : 'transparent' }]} />
             <Text style={styles.connectionText}>
-              {connectedDevice ? 'Scanner Connected' : 'Scanner Disconnected'}
+              {connectedDevice ? 'Scanner Connected' : ''}
             </Text>
           </View>
         </View>
@@ -263,7 +263,7 @@ const FindPalletScreen = ({ navigation, route }: { navigation: any; route: any }
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Enter Tag ID to simulate search scan"
+              placeholder="Enter Tag to simulate..."
               value={simulatedRfid}
               onChangeText={setSimulatedRfid}
               placeholderTextColor="#62788a"

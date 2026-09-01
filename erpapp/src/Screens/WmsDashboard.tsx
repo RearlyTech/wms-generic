@@ -24,7 +24,7 @@ const { width } = Dimensions.get('window');
 
 const WMS_ACTIONS = [
   {
-    id: 'receive',
+    id: 'assign',
     title: 'Assign to Pallet',
     description: 'Assign scanned RFID items to a storage pallet',
     icon: 'plus-circle',

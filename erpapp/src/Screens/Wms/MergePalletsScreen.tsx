@@ -239,9 +239,9 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
 
         <View style={styles.statusRow}>
           <View style={styles.connectionBadge}>
-            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : '#e0654f' }]} />
+            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : 'transparent' }]} />
             <Text style={styles.connectionText}>
-              {connectedDevice ? 'Scanner Connected' : 'Scanner Disconnected'}
+              {connectedDevice ? 'Scanner Connected' : ''}
             </Text>
           </View>
         </View>
@@ -252,7 +252,7 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
             <Icon name="tag" size={18} color={activeInput === 'A' ? '#3fbf75' : '#62788a'} style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Waiting for Source Pallet A RFID scan..."
+              placeholder="Scan Source Pallet..."
               value={palletA}
               editable={false}
               placeholderTextColor="#62788a"
@@ -354,7 +354,7 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
               <Icon name="tag" size={18} color={activeInput === 'B' ? '#3fbf75' : '#62788a'} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Scan Destination Pallet B RFID..."
+                placeholder="Scan Target Pallet..."
                 value={palletB}
                 editable={false}
                 placeholderTextColor="#62788a"

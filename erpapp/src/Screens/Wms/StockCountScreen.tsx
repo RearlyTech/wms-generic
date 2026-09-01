@@ -7,6 +7,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Modal,
+  Alert,
 } from 'react-native';
 import {
   widthPercentageToDP as wp,
@@ -32,7 +33,7 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
   const isFocused = useIsFocused();
   const { rfid, connectedDevice } = useBLE();
 
-  const [activeContainer, setActiveContainer] = useState<{name: string, rfid: string} | null>(null);
+  const [activeContainer, setActiveContainer] = useState<{ name: string, rfid: string, location?: string } | null>(null);
   const [scanHistory, setScanHistory] = useState<ScannedItem[]>([]);
   const [isResolving, setIsResolving] = useState(false);
 
@@ -97,24 +98,50 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
       const response = await fetch(`http://77.42.39.77:8000/wms/resolve-tag-info?rfid=${encodeURIComponent(tag)}`);
       if (response.ok) {
         const json = await response.json();
-        
+
         if (json.type === 'Warehouse') {
-          // It's a bin/pallet
-          setActiveContainer({
-            name: json.name,
-            rfid: json.rfid,
-          });
+          const isBin = json.name.toLowerCase().includes('bin');
+          if (!activeContainer && isBin) {
+            // It's a bin, set as active
+            setActiveContainer({
+              name: json.name,
+              rfid: json.rfid,
+              location: json.location,
+            });
+          } else if (activeContainer) {
+            // Treat scanned pallet (or anything else) as a verified item against the active bin
+            if (scanHistory.some(item => item.rfid === tag)) {
+              setIsResolving(false);
+              return;
+            }
+
+            const cleanExpected = json.location ? json.location.split(' - ')[0].trim() : '';
+            const cleanActive = activeContainer ? activeContainer.name.split(' - ')[0].trim() : '';
+            const isCorrect = activeContainer ? cleanExpected === cleanActive : false;
+
+            setScanHistory(prev => [{
+              rfid: json.rfid,
+              name: json.name,
+              expectedLocation: cleanExpected || json.location,
+              scannedContainerName: activeContainer ? cleanActive : null,
+              isCorrect: isCorrect,
+              type: json.type,
+              is_reserved: json.is_reserved
+            }, ...prev]);
+          } else {
+            Alert.alert('Scan Error', 'Please scan a Bin first before scanning pallets.');
+          }
         } else if (json.type === 'Item') {
           // Ensure we don't add duplicates to history, or just bring it to top if you want
           if (scanHistory.some(item => item.rfid === tag)) {
-             setIsResolving(false);
-             return;
+            setIsResolving(false);
+            return;
           }
 
           const cleanExpected = json.location ? json.location.split(' - ')[0].trim() : '';
           const cleanActive = activeContainer ? activeContainer.name.split(' - ')[0].trim() : '';
           const isCorrect = activeContainer ? cleanExpected === cleanActive : false;
-          
+
           setScanHistory(prev => [{
             rfid: json.rfid,
             name: json.name,
@@ -173,23 +200,17 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
           <Icon name="arrow-left" size={24} color="#ecf1f4" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Stock Count</Text>
-        {activeTaskId ? (
-          <TouchableOpacity onPress={handleCompleteTask} style={{ padding: 4 }}>
-            <Text style={{ color: 'white', fontWeight: 'bold' }}>Done</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={{ width: 24 }} />
-        )}
+        <View style={{ width: 24 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        
+
         {/* CONNECTION BADGE */}
         <View style={styles.statusRow}>
           <View style={styles.connectionBadge}>
-            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : '#e0654f' }]} />
+            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : 'transparent' }]} />
             <Text style={styles.connectionText}>
-              {connectedDevice ? 'Scanner Active' : 'Scanner Disconnected'}
+              {connectedDevice ? 'Scanner Active' : ''}
             </Text>
           </View>
         </View>
@@ -198,8 +219,8 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
         <View style={styles.instructionCard}>
           <Icon name="info" size={24} color="#3fbf75" style={{ marginRight: 12 }} />
           <Text style={styles.instructionText}>
-            Step 1: Scan a Bin or Pallet RFID.{'\n'}
-            Step 2: Scan Item RFIDs to verify location.
+            Step 1: Select a Task or Scan a Bin.{'\n'}
+            Step 2: Scan Pallets (or Items) to verify they are in this Bin.
           </Text>
         </View>
 
@@ -213,6 +234,9 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
             <View style={styles.activeContainerDetails}>
               <Text style={styles.activeContainerName}>{activeContainer.name}</Text>
               <Text style={styles.activeContainerRfid}>RFID: {activeContainer.rfid}</Text>
+              {activeContainer.location && (
+                <Text style={styles.activeContainerLocation}>Parent Location: {activeContainer.location}</Text>
+              )}
             </View>
           ) : (
             <View style={styles.emptyContainerState}>
@@ -244,9 +268,9 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
             {scanHistory.map((item, idx) => {
               const isCorrect = item.isCorrect;
               return (
-                <TouchableOpacity 
-                  key={idx} 
-                  style={[styles.historyRow, isCorrect ? styles.rowCorrect : styles.rowIncorrect]} 
+                <TouchableOpacity
+                  key={idx}
+                  style={[styles.historyRow, isCorrect ? styles.rowCorrect : styles.rowIncorrect]}
                   onPress={() => handleItemPress(item)}
                   activeOpacity={0.8}
                 >
@@ -260,7 +284,7 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
                   <View style={styles.rowContent}>
                     <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
                     <Text style={styles.itemRfid}>Tag: {item.rfid}</Text>
-                    
+
                     {!isCorrect ? (
                       <View style={styles.locationMismatchContainer}>
                         <Text style={styles.locationMismatchText}>
@@ -279,7 +303,7 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
                 </TouchableOpacity>
               );
             })}
-            
+
             {scanHistory.length === 0 && !isResolving && (
               <Text style={styles.emptyHistoryText}>Scan items to see them here...</Text>
             )}
@@ -296,8 +320,8 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
             <ActivityIndicator color="#3fbf75" style={{ marginVertical: 10 }} />
           ) : pendingTasks.length > 0 ? (
             pendingTasks.map((task) => (
-              <TouchableOpacity 
-                key={task.name} 
+              <TouchableOpacity
+                key={task.name}
                 style={styles.taskItem}
                 onPress={() => {
                   setActiveTaskId(task.name);
@@ -319,6 +343,27 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
           )}
         </View>
 
+        {activeTaskId && (
+          <TouchableOpacity 
+            onPress={handleCompleteTask} 
+            style={{
+              backgroundColor: '#3fbf75',
+              paddingVertical: 16,
+              borderRadius: 12,
+              alignItems: 'center',
+              marginTop: 20,
+              marginBottom: 10,
+              shadowColor: '#3fbf75',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 4
+            }}
+          >
+            <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: 'bold', fontFamily: 'Archivo' }}>Complete Stock Count</Text>
+          </TouchableOpacity>
+        )}
+
       </ScrollView>
 
       {/* Item Details Modal */}
@@ -333,22 +378,22 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Item Details</Text>
               <TouchableOpacity onPress={() => setShowDetailModal(false)} style={styles.closeModalButton}>
-                <Icon name="x" size={28} color="#4A5568" />
+                <Icon name="x" size={28} color="#ecf1f4" />
               </TouchableOpacity>
             </View>
-            
+
             {selectedItemDetail && (
               <View style={styles.modalBody}>
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Item Name</Text>
                   <Text style={styles.detailValue}>{selectedItemDetail.item_name}</Text>
                 </View>
-                
+
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>RFID Tag</Text>
                   <Text style={styles.detailValue} selectable={true}>{selectedItemDetail.rfid_tag}</Text>
                 </View>
-                
+
                 <View style={styles.detailItem}>
                   <Text style={styles.detailLabel}>Expected Location</Text>
                   <Text style={styles.detailValue}>{selectedItemDetail.location}</Text>
@@ -421,7 +466,7 @@ const styles = StyleSheet.create({
   },
   connectionText: {
     fontFamily: 'Archivo', fontSize: wp(3.5),
-    color: '#4A5568',
+    color: '#ecf1f4',
     fontWeight: '700',
   },
   instructionCard: {
@@ -463,7 +508,7 @@ const styles = StyleSheet.create({
   activeContainerTitle: {
     fontFamily: 'Archivo', fontSize: wp(5),
     fontWeight: '800',
-    color: '#2D3748',
+    color: '#ffffff',
     marginLeft: wp(3),
   },
   activeContainerDetails: {
@@ -476,13 +521,19 @@ const styles = StyleSheet.create({
   activeContainerName: {
     fontFamily: 'Archivo', fontSize: wp(6),
     fontWeight: '800',
-    color: '#3fbf75',
+    color: '#ffffff',
     marginBottom: hp(0.5),
   },
   activeContainerRfid: {
     fontFamily: 'Archivo', fontSize: wp(3.8),
-    color: '#3fbf75',
+    color: '#ffffff',
     fontWeight: '600',
+  },
+  activeContainerLocation: {
+    fontFamily: 'Archivo', fontSize: wp(3.8),
+    color: '#ffffff',
+    fontWeight: '500',
+    marginTop: hp(0.5),
   },
   emptyContainerState: {
     alignItems: 'center',
@@ -496,12 +547,12 @@ const styles = StyleSheet.create({
   emptyContainerText: {
     fontFamily: 'Archivo', fontSize: wp(4.5),
     fontWeight: '700',
-    color: '#718096',
+    color: '#9db0bd',
     marginBottom: hp(0.5),
   },
   emptyContainerSubtext: {
     fontFamily: 'Archivo', fontSize: wp(3.8),
-    color: '#A0AEC0',
+    color: '#ecf1f4',
   },
   historyCard: {
     backgroundColor: '#121b26',
@@ -555,14 +606,14 @@ const styles = StyleSheet.create({
     fontSize: wp(3.5),
   },
   taskDate: {
-    color: '#9db0bd',
+    color: '#ecf1f4',
     fontSize: wp(3),
   },
   taskBody: {
     flexDirection: 'column',
   },
   taskDetail: {
-    color: '#9db0bd',
+    color: '#ecf1f4',
     fontSize: wp(3.5),
   },
   taskNotes: {
@@ -572,7 +623,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   emptyTasksText: {
-    color: '#9db0bd',
+    color: '#ecf1f4',
     fontSize: wp(3.5),
     textAlign: 'center',
     marginTop: 10,
@@ -590,7 +641,7 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontFamily: 'Archivo', fontSize: wp(5.5),
     fontWeight: '800',
-    color: '#2D3748',
+    color: '#ffffff',
   },
   clearButton: {
     backgroundColor: '#FED7D7',
@@ -612,7 +663,7 @@ const styles = StyleSheet.create({
   loaderText: {
     marginLeft: wp(3),
     fontFamily: 'Archivo', fontSize: wp(4),
-    color: '#4A5568',
+    color: '#ecf1f4',
     fontWeight: '600',
   },
   historyList: {
@@ -643,12 +694,12 @@ const styles = StyleSheet.create({
   itemName: {
     fontFamily: 'Archivo', fontSize: wp(5),
     fontWeight: '800',
-    color: '#2D3748',
+    color: '#ffffff',
     marginBottom: hp(0.3),
   },
   itemRfid: {
     fontFamily: 'Archivo', fontSize: wp(3.5),
-    color: '#718096',
+    color: '#ecf1f4',
     fontWeight: '600',
     marginBottom: hp(0.5),
   },
@@ -664,7 +715,7 @@ const styles = StyleSheet.create({
   },
   locationMatchText: {
     fontFamily: 'Archivo', fontSize: wp(3.8),
-    color: '#3fbf75',
+    color: '#ffffff',
   },
   boldText: {
     fontWeight: '800',
@@ -673,7 +724,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: hp(4),
     fontFamily: 'Archivo', fontSize: wp(4.5),
-    color: '#A0AEC0',
+    color: '#ecf1f4',
     fontWeight: '600',
     fontStyle: 'italic',
   },
@@ -707,7 +758,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontFamily: 'Archivo', fontSize: wp(6),
     fontWeight: '900',
-    color: '#2D3748',
+    color: '#ffffff',
   },
   closeModalButton: {
     padding: wp(1),
@@ -721,7 +772,7 @@ const styles = StyleSheet.create({
   detailLabel: {
     fontFamily: 'Archivo', fontSize: wp(3.5),
     fontWeight: '800',
-    color: '#718096',
+    color: '#ecf1f4',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: hp(0.5),
@@ -729,7 +780,7 @@ const styles = StyleSheet.create({
   detailValue: {
     fontFamily: 'Archivo', fontSize: wp(5),
     fontWeight: '700',
-    color: '#2D3748',
+    color: '#ffffff',
   },
 });
 

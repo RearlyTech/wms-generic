@@ -191,7 +191,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
             <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Waiting for Pallet RFID scan..."
+              placeholder="Scan Pallet..."
               value={scannedRfid}
               editable={false}
               placeholderTextColor="#62788a"
@@ -263,7 +263,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
                 <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
-                  placeholder="Scan or enter new RFID tag..."
+                  placeholder="Scan new RFID..."
                   value={newRfid}
                   editable={false}
                   placeholderTextColor="#62788a"
@@ -302,7 +302,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
           <View style={styles.inputContainer}>
             <TextInput
               style={styles.input}
-              placeholder="Enter Tag ID or Bin name to simulate scan"
+              placeholder="Enter Tag to simulate..."
               value={simulatedRfid}
               onChangeText={setSimulatedRfid}
               placeholderTextColor="#62788a"

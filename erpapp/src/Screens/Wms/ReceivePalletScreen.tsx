@@ -157,9 +157,9 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
         {/* SCAN STATUS */}
         <View style={styles.statusRow}>
           <View style={styles.connectionBadge}>
-            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : '#e0654f' }]} />
+            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : 'transparent' }]} />
             <Text style={styles.connectionText}>
-              {connectedDevice ? 'Scanner Connected' : 'Scanner Disconnected'}
+              {connectedDevice ? 'Scanner Connected' : ''}
             </Text>
           </View>
         </View>
@@ -171,7 +171,7 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
             <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Waiting for Item RFID scan..."
+              placeholder="Scan Item RFID..."
               value={scannedRfid}
               editable={false}
               placeholderTextColor="#62788a"
@@ -248,7 +248,7 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
               <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Scan Pallet RFID..."
+                placeholder="Scan Pallet..."
                 value={palletId}
                 editable={scanStep === 'pallet'}
                 onChangeText={(text) => setPalletId(text)}

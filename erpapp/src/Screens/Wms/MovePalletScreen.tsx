@@ -230,9 +230,9 @@ const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any 
 
         <View style={styles.statusRow}>
           <View style={styles.connectionBadge}>
-            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : '#e0654f' }]} />
+            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : 'transparent' }]} />
             <Text style={styles.connectionText}>
-              {connectedDevice ? 'Scanner Connected' : 'Scanner Disconnected'}
+              {connectedDevice ? 'Scanner Connected' : ''}
             </Text>
           </View>
         </View>
@@ -243,7 +243,7 @@ const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any 
             <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Waiting for Source Bin RFID scan..."
+              placeholder="Scan Source Bin..."
               value={sourceBin}
               editable={false}
               placeholderTextColor="#62788a"
@@ -343,7 +343,7 @@ const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any 
               <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Scan Destination Bin RFID..."
+                placeholder="Scan Target Bin..."
                 value={targetBin}
                 editable={false}
                 placeholderTextColor="#62788a"

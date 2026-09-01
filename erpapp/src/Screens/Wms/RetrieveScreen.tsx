@@ -131,9 +131,9 @@ const RetrieveScreen = ({ navigation, route }: { navigation: any; route: any }) 
 
         <View style={styles.statusRow}>
           <View style={styles.connectionBadge}>
-            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : '#e0654f' }]} />
+            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : 'transparent' }]} />
             <Text style={styles.connectionText}>
-              {connectedDevice ? 'Scanner Connected' : 'Scanner Disconnected'}
+              {connectedDevice ? 'Scanner Connected' : ''}
             </Text>
           </View>
         </View>

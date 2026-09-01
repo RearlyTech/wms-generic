@@ -215,9 +215,9 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
 
           <View style={styles.statusRow}>
             <View style={styles.connectionBadge}>
-              <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : '#e0654f' }]} />
+              <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : 'transparent' }]} />
               <Text style={styles.connectionText}>
-                {connectedDevice ? 'Scanner Connected' : 'Scanner Disconnected'}
+                {connectedDevice ? 'Scanner Connected' : ''}
               </Text>
             </View>
           </View>
@@ -228,7 +228,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
               <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Scan or enter Pallet RFID..."
+                placeholder="Scan Pallet RFID..."
                 value={palletRfid}
                 editable={scanStep === 'pallet'}
                 onChangeText={(text) => {
@@ -328,7 +328,7 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
                   <Icon name="map-pin" size={18} color={isBinVerified === true ? '#3fbf75' : (isBinVerified === false ? '#e0654f' : '#62788a')} style={{ marginRight: 8 }} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Scan or enter Bin RFID..."
+                    placeholder="Scan Bin RFID..."
                     value={scannedBinRfid}
                     onChangeText={(text) => {
                       setScannedBinRfid(text);

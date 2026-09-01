@@ -193,9 +193,9 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
 
         <View style={styles.statusRow}>
           <View style={styles.connectionBadge}>
-            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : '#e0654f' }]} />
+            <View style={[styles.dot, { backgroundColor: connectedDevice ? '#3fbf75' : 'transparent' }]} />
             <Text style={styles.connectionText}>
-              {connectedDevice ? 'Scanner Connected' : 'Scanner Disconnected'}
+              {connectedDevice ? 'Scanner Connected' : ''}
             </Text>
           </View>
         </View>
@@ -238,7 +238,7 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
             <Icon name="map-pin" size={18} color="#62788a" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Scan Bin/Pallet RFID..."
+              placeholder="Scan Bin/Pallet..."
               value={palletRfid}
               editable={false}
               placeholderTextColor="#62788a"
@@ -255,7 +255,7 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
             <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Scan Item RFID..."
+              placeholder="Scan Item..."
               value={itemRfid}
               editable={false}
               placeholderTextColor="#62788a"
