@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import CustomStatusBar from '../../common/customstatusbar';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBLE } from '../Blecontext';
 import { useIsFocused } from '@react-navigation/native';
+import CustomNumpad from '../../common/CustomNumpad';
 
 const RepackScreen = ({ navigation }: { navigation: any }) => {
   const isFocused = useIsFocused();
@@ -36,6 +37,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
   const [simulatedRfid, setSimulatedRfid] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [showNumpad, setShowNumpad] = useState(false);
 
   const [warehouses, setWarehouses] = useState<string[]>([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
@@ -59,10 +61,15 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
     fetchWarehouses();
   }, []);
 
+  const scannedRfidRef = useRef(scannedRfid);
+  useEffect(() => {
+    scannedRfidRef.current = scannedRfid;
+  }, [scannedRfid]);
+
   // Listen to BLE RFID scans when focused
   useEffect(() => {
     if (isFocused && rfid) {
-      if (!scannedRfid) {
+      if (!scannedRfidRef.current) {
         handleScanReceived(rfid);
       } else {
         setNewRfid(rfid);
@@ -108,7 +115,15 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
 
   const handleRepack = async () => {
     if (!scannedRfid) {
-      Alert.alert('Validation Error', 'Please scan a pallet or item RFID to repack.');
+      Alert.alert('Validation Error', 'Please scan a source pallet RFID.');
+      return;
+    }
+    if (!amountUsed || isNaN(parseFloat(amountUsed)) || parseFloat(amountUsed) <= 0) {
+      Alert.alert('Validation Error', 'Please enter a valid repack quantity.');
+      return;
+    }
+    if (!newRfid) {
+      Alert.alert('Validation Error', 'Please scan the target pallet RFID.');
       return;
     }
 
@@ -121,7 +136,8 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           item_rfid: scannedRfid,
-          new_rfid: newRfid || undefined,
+          new_rfid: newRfid,
+          repack_qty: parseFloat(amountUsed)
         }),
       });
 
@@ -168,7 +184,9 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
         <View style={styles.instructionCard}>
           <Icon name="info" size={20} color="#3fbf75" style={{ marginRight: 8 }} />
           <Text style={styles.instructionText}>
-            Select or scan a pallet, verify actual stock details, and consume quantity for repacking.
+            1. Scan source pallet to verify details. 
+            2. Enter required quantity. 
+            3. Scan new pasted RFID.
           </Text>
         </View>
 
@@ -213,10 +231,28 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
             </View>
           ) : null}
 
-          {/* New RFID Tag Input (Only when an item is scanned) */}
-          {scannedRfid ? (
+          {/* Required Quantity Input */}
+          {scannedRfid && itemName && !loadingItem ? (
             <>
-              <Text style={styles.label}>Scan/Enter New RFID Tag (Optional)</Text>
+              <Text style={styles.label}>Required Repack Quantity</Text>
+              <TouchableOpacity style={styles.inputContainer} onPress={() => setShowNumpad(true)}>
+                <Icon name="edit-2" size={18} color="#62788a" style={styles.inputIcon} />
+                <Text style={[styles.input, { color: amountUsed ? '#ecf1f4' : '#62788a', paddingTop: 15 }]}>
+                  {amountUsed || 'Tap to enter quantity...'}
+                </Text>
+                {amountUsed ? (
+                  <TouchableOpacity onPress={() => setAmountUsed('')}>
+                    <Icon name="x" size={18} color="#62788a" />
+                  </TouchableOpacity>
+                ) : null}
+              </TouchableOpacity>
+            </>
+          ) : null}
+
+          {/* Target RFID Tag Input */}
+          {scannedRfid && amountUsed ? (
+            <>
+              <Text style={styles.label}>Scan New RFID Tag</Text>
               <View style={styles.inputContainer}>
                 <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
                 <TextInput
@@ -255,6 +291,15 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
           </View>
         )}
 
+      </ScrollView>
+
+      <CustomNumpad
+        visible={showNumpad}
+        onClose={() => setShowNumpad(false)}
+        onConfirm={(val) => setAmountUsed(val)}
+        initialValue={amountUsed}
+      />
+
         {/* <View style={styles.simCard}>
           <Text style={styles.simTitle}>Simulate RFID Scan (Developer Mode)</Text>
           <View style={styles.inputContainer}>
@@ -270,7 +315,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
             </TouchableOpacity>
           </View>
         </View> */}
-      </ScrollView>
+        {/* </View> */}
     </View>
   );
 };

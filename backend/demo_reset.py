@@ -126,6 +126,18 @@ def delete_doc(doctype, name):
             if "marine" in tgt or "marine" in details:
                 is_marine = True
                 
+            old_tag = doc_details.get("old_tag")
+            new_tag = doc_details.get("new_tag")
+            target_loc = doc_details.get("target_location")
+            if old_tag and new_tag and old_tag != new_tag and target_loc:
+                print(f"Reverting RFID for {target_loc} back to {old_tag}...")
+                payload_wh = {
+                    "custom_bin_rfid": old_tag,
+                    "bin_rfid": old_tag,
+                    "custom_rfid": old_tag
+                }
+                requests.put(f"{ERP_URL}/api/resource/Warehouse/{target_loc}", headers=HEADERS, json=payload_wh)
+                
         if not is_marine:
             print(f"Skipping {doctype} {name} (Not related to marine)")
             return

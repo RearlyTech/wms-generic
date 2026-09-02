@@ -476,7 +476,8 @@ class WmsMoveSchema(BaseModel):
 
 class WmsRepackSchema(BaseModel):
     item_rfid: str
-    new_rfid: Optional[str] = None
+    new_rfid: str | None = None
+    repack_qty: float
 
 class WmsSplitSchema(BaseModel):
     source_bin: str

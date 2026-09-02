@@ -269,61 +269,28 @@ def api_wms_move(data: WmsMoveSchema):
 def api_wms_repack(data: WmsRepackSchema):
     try:
         company = resolve_latest_doc("Company") or "Rearly Tech"
-        company_abbr = get_company_abbr(company)
         
-        src_wh = data.item_rfid
-        is_wh = False
-        
-        # Check if src_wh exists as a Warehouse
-        if " - " not in src_wh:
-            src_wh_full = f"{src_wh} - {company_abbr}"
-        else:
-            src_wh_full = src_wh
+        src_wh = resolve_warehouse_from_rfid(data.item_rfid)
+        if not exists("Warehouse", src_wh):
+            raise Exception("Source pallet/bin not found.")
             
-        resolved_wh = resolve_warehouse_from_rfid(src_wh)
-        if resolved_wh and exists("Warehouse", resolved_wh):
-            src_wh_full = resolved_wh
-            is_wh = True
+        # Find the item in the source pallet
+        r = requests.get(
+            f"{ERP_URL}/api/resource/Bin",
+            headers=HEADERS,
+            params={"filters": json.dumps([["warehouse", "=", src_wh], ["actual_qty", ">", 0]]), "fields": '["item_code", "actual_qty"]'}
+        )
+        if r.status_code != 200 or not r.json().get("data"):
+            raise Exception("Source pallet is empty.")
             
-        if is_wh or exists("Warehouse", src_wh_full):
-            # It's a warehouse. Look up the item stored in it
-            src_wh = src_wh_full
-            items_in_wh = []
-            try:
-                r = requests.get(
-                    f"{ERP_URL}/api/resource/Bin",
-                    headers=HEADERS,
-                    params={"filters": json.dumps([["warehouse", "=", src_wh], ["actual_qty", ">", 0]]), "fields": '["item_code", "actual_qty"]'}
-                )
-                if r.status_code == 200:
-                    items_in_wh = r.json().get("data", [])
-            except Exception:
-                pass
-            if items_in_wh:
-                item_code = items_in_wh[0]["item_code"]
-                actual_qty = float(items_in_wh[0].get("actual_qty", 1.0))
-            else:
-                item_code = resolve_latest_doc("Item", [["is_stock_item", "=", 1]]) or "Maida Flour"
-                actual_qty = 1.0
-        else:
-            # It's an RFID tag. Resolve the item and find where it has stock
-            item_code = resolve_item_from_rfid(data.item_rfid)
-            src_wh = get_item_source_warehouse(item_code)
-            actual_qty = 1.0
-            try:
-                r = requests.get(
-                    f"{ERP_URL}/api/resource/Bin",
-                    headers=HEADERS,
-                    params={"filters": json.dumps([["warehouse", "=", src_wh], ["item_code", "=", item_code]]), "fields": '["actual_qty"]'}
-                )
-                if r.status_code == 200:
-                    bin_data = r.json().get("data", [])
-                    if bin_data:
-                        actual_qty = float(bin_data[0].get("actual_qty", 1.0))
-            except Exception:
-                pass
+        items_in_wh = r.json().get("data", [])
+        item_code = items_in_wh[0]["item_code"]
+        actual_qty = float(items_in_wh[0].get("actual_qty", 0.0))
         
-        # 1. Perform Material Issue of amount_used
+        if data.repack_qty > actual_qty:
+            raise Exception(f"Cannot repack {data.repack_qty}. Only {actual_qty} available in source pallet.")
+            
+        # 1. Perform Material Issue for the quantity taken out
         payload = {
             "doctype": "Stock Entry",
             "stock_entry_type": "Material Issue",
@@ -332,7 +299,7 @@ def api_wms_repack(data: WmsRepackSchema):
             "items": [
                 {
                     "item_code": item_code,
-                    "qty": actual_qty,
+                    "qty": data.repack_qty,
                     "s_warehouse": src_wh,
                     "uom": "Nos"
                 }
@@ -349,40 +316,25 @@ def api_wms_repack(data: WmsRepackSchema):
         se = erp_post("Stock Entry", payload)
         submit_doc("Stock Entry", se["name"])
         
-        # 2. Update RFID tag mapping if new_rfid is provided
+        # 2. Update RFID tag mapping on the existing warehouse
         if data.new_rfid and data.new_rfid.strip():
             new_tag = data.new_rfid.strip()
-            if is_wh:
-                # Update warehouse custom RFID fields
-                payload_wh = {
-                    "custom_bin_rfid": new_tag,
-                    "bin_rfid": new_tag,
-                    "custom_rfid": new_tag
-                }
-                erp_put("Warehouse", src_wh, payload_wh)
-            else:
-                # Check for Serial No matching old tag and update it
-                try:
-                    r_sn = requests.get(
-                        f"{ERP_URL}/api/resource/Serial No",
-                        headers=HEADERS,
-                        params={"filters": json.dumps([["custom_rfid_tag", "=", data.item_rfid]]), "fields": '["name"]'}
-                    )
-                    if r_sn.status_code == 200 and r_sn.json().get("data"):
-                        sn_name = r_sn.json()["data"][0]["name"]
-                        erp_put("Serial No", sn_name, {"custom_rfid_tag": new_tag})
-                except Exception:
-                    pass
-                    
-        # Log activity in ERPNext
+            payload_wh = {
+                "custom_bin_rfid": new_tag,
+                "bin_rfid": new_tag,
+                "custom_rfid": new_tag
+            }
+            erp_put("Warehouse", src_wh, payload_wh)
+        
+        # 3. Log activity in ERPNext as Manual Exception as requested
         try:
             log_wms_activity(
-                activity_type="RFID Change" if data.new_rfid else "Location Move",
+                activity_type="Manual Exception",
                 operator="System",
                 target_location=src_wh,
                 old_tag=data.item_rfid,
-                new_tag=data.new_rfid or data.item_rfid,
-                details=f"Repacked {item_code}. Consumed all {actual_qty} Nos."
+                new_tag=data.new_rfid,
+                details=f"Repacked {data.repack_qty} of {item_code} from {src_wh}. RFID updated."
             )
         except Exception:
             pass
