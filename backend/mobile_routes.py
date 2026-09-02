@@ -233,6 +233,12 @@ def api_wms_move(data: WmsMoveSchema):
         pallet_name = resolve_warehouse_from_rfid(data.source_rfid)
         target_bin = resolve_warehouse_from_rfid(data.destination_id)
         
+        if data.expected_source and pallet_name != data.expected_source:
+            raise Exception(f"Scanned source '{pallet_name}' does not match expected '{data.expected_source}'")
+            
+        if data.expected_target and target_bin != data.expected_target:
+            raise Exception(f"Scanned target '{target_bin}' does not match expected '{data.expected_target}'")
+        
         old_parent = "None"
         try:
             r_wh = requests.get(f"{ERP_URL}/api/resource/Warehouse/{pallet_name}", headers=HEADERS)
@@ -393,6 +399,12 @@ def api_wms_merge(data: WmsMergeSchema):
         
         src_wh = resolve_warehouse_from_rfid(data.pallet_a)
         dest_wh = resolve_warehouse_from_rfid(data.pallet_b)
+        
+        if data.expected_source and src_wh != data.expected_source:
+            raise Exception(f"Scanned source '{src_wh}' does not match expected '{data.expected_source}'")
+            
+        if data.expected_target and dest_wh != data.expected_target:
+            raise Exception(f"Scanned target '{dest_wh}' does not match expected '{data.expected_target}'")
         
         # Determine quantity from source warehouse
         actual_qty = 1.0
@@ -643,32 +655,26 @@ def api_wms_dispatch(data: WmsDispatchSchema):
         if not exists("Warehouse", warehouse_tag):
             raise Exception("Invalid Location/Bin RFID. Please scan a valid bin/pallet tag first.")
             
-        if not data.item_rfid:
-            raise Exception("Item RFID is required for 2-step verification. Please scan the item.")
+        if data.expected_location and warehouse_tag != data.expected_location:
+            raise Exception(f"Scanned location '{warehouse_tag}' does not match the expected task location '{data.expected_location}'.")
             
-        item_code = resolve_item_from_rfid(data.item_rfid)
-        if not item_code:
-            raise Exception("Invalid Item RFID. Could not resolve item code.")
-            
-        # Verify that the item has stock in the specified warehouse
+        # Item RFID check removed for pallet-level dispatch.
+        
+        # Verify that there is stock in the specified warehouse
         r_bin = requests.get(
             f"{ERP_URL}/api/resource/Bin",
             headers=HEADERS,
-            params={"filters": json.dumps([["warehouse", "=", warehouse_tag], ["item_code", "=", item_code], ["actual_qty", ">", 0]]), "fields": '["actual_qty"]'}
+            params={
+                "filters": json.dumps([["warehouse", "=", warehouse_tag], ["actual_qty", ">", 0]]),
+                "fields": '["item_code", "actual_qty"]',
+                "limit_page_length": 1000
+            }
         )
         
         if r_bin.status_code != 200 or not r_bin.json().get("data"):
-            raise Exception(f"Item {item_code} not found in location {warehouse_tag} with quantity > 0.")
+            raise Exception(f"No items found in location {warehouse_tag} with quantity > 0.")
             
         bins = r_bin.json().get("data")
-        qty = float(bins[0].get("actual_qty", 1.0))
-        
-        # Check if the item's batch is marked for dispatch
-        dispatch_marked = requests.get(
-            f"{ERP_URL}/api/resource/Batch",
-            headers=HEADERS,
-            params={"filters": json.dumps([["item", "=", item_code], ["custom_marked_for_dispatch", "=", 1]]), "fields": '["name"]'}
-        )
         
         # Check if the pallet is marked for dispatch
         wh_dispatch_marked = requests.get(
@@ -677,34 +683,16 @@ def api_wms_dispatch(data: WmsDispatchSchema):
             params={"filters": json.dumps([["name", "=", warehouse_tag], ["custom_marked_for_dispatch", "=", 1]]), "fields": '["name"]'}
         )
         
-        is_batch_marked = dispatch_marked.status_code == 200 and dispatch_marked.json().get("data")
         is_wh_marked = wh_dispatch_marked.status_code == 200 and wh_dispatch_marked.json().get("data")
         
-        if not is_batch_marked and not is_wh_marked:
-             raise Exception(f"Item {item_code} and its Pallet are not marked for dispatch.")
-             
-        # Find which items are in this location and have sufficient quantity
-        # For a batched dispatch, we would strictly dispatch the marked batches
-        # For a pallet dispatch, we dispatch the scanned item
-        payload = {
-            "stock_entry_type": "Material Issue",
-            "company": company,
-            "items": []
-        }
-        items_to_issue = [{
-            "item_code": item_code,
-            "qty": qty,
-            "s_warehouse": warehouse_tag
-        }]
-        
-        # If it was a batch dispatch, unmark the batches
-        if is_batch_marked:
-            for d_batch in dispatch_marked.json().get("data", []):
-                try:
-                    erp_put("Batch", d_batch["name"], {"custom_marked_for_dispatch": 0})
-                except Exception:
-                    pass
-                    
+        items_to_issue = []
+        for b in bins:
+            items_to_issue.append({
+                "item_code": b["item_code"],
+                "qty": float(b.get("actual_qty", 1.0)),
+                "s_warehouse": warehouse_tag
+            })
+            
         # If it was a pallet dispatch, unmark the pallet
         if is_wh_marked:
             try:
@@ -712,8 +700,6 @@ def api_wms_dispatch(data: WmsDispatchSchema):
             except Exception:
                 pass
                 
-        # Optional: Disable pallet entirely if empty
-        # if total_remaining <= 0:
         items_payload = []
         for it in items_to_issue:
             uom = "Nos"
@@ -741,13 +727,6 @@ def api_wms_dispatch(data: WmsDispatchSchema):
         
         se = erp_post("Stock Entry", payload)
         submit_doc("Stock Entry", se["name"])
-        
-        # Not needed since we enforce location scanning
-        # if is_warehouse:
-        #    try:
-        #        erp_put("Warehouse", tag, {"custom_dispatch_success": 1, "disabled": 1})
-        #    except Exception:
-        #        pass
                 
         # Log activity in ERPNext
         try:

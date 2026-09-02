@@ -471,6 +471,8 @@ class WmsMoveSchema(BaseModel):
     source_rfid: str
     destination_type: str
     destination_id: str
+    expected_source: str | None = None
+    expected_target: str | None = None
 
 class WmsRepackSchema(BaseModel):
     item_rfid: str
@@ -485,7 +487,9 @@ class WmsSplitSchema(BaseModel):
 class WmsMergeSchema(BaseModel):
     pallet_a: str
     pallet_b: str
-    item_code: str
+    item_code: str | None = None
+    expected_source: str | None = None
+    expected_target: str | None = None
 
 class WmsExceptionSchema(BaseModel):
     target_rfid: str
@@ -496,6 +500,7 @@ class WmsDispatchSchema(BaseModel):
     pallet_rfid: str
     item_rfid: str | None = None
     dock_id: str | None = None
+    expected_location: str | None = None
 
 class WmsStockCountSchema(BaseModel):
     scanned_tags: list[str]

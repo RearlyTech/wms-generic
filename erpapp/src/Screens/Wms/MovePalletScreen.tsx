@@ -42,6 +42,8 @@ const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any 
   const [isManual, setIsManual] = useState(false);
 
   const [activeTaskId, setActiveTaskId] = useState(route?.params?.taskId || null);
+  const [expectedSourceBin, setExpectedSourceBin] = useState('');
+  const [expectedTargetBin, setExpectedTargetBin] = useState('');
   const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const [fetchingTasks, setFetchingTasks] = useState(false);
 
@@ -166,6 +168,8 @@ const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any 
           source_rfid: palletKey,
           destination_type: 'pallet',
           destination_id: targetBin,
+          expected_source: activeTaskId ? expectedSourceBin : null,
+          expected_target: activeTaskId ? expectedTargetBin : null,
         }),
       });
 
@@ -357,14 +361,16 @@ const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any 
           )}
 
           <TouchableOpacity
-            style={[styles.primaryButton, (loading || !assignedPalletName) && styles.disabledButton]}
+            style={[styles.primaryButton, (loading || !assignedPalletName || !activeTaskId || !sourceBin || !targetBin) && styles.disabledButton]}
             onPress={handleMove}
-            disabled={loading || !assignedPalletName}
+            disabled={loading || !assignedPalletName || !activeTaskId || !sourceBin || !targetBin}
           >
             {loading ? (
               <ActivityIndicator color="#0a0f16" />
             ) : (
-              <Text style={styles.primaryButtonText}>Confirm Relocation</Text>
+              <Text style={styles.primaryButtonText}>
+                {!activeTaskId ? "Select a Task" : (!sourceBin || !targetBin) ? "Scan Locations First" : "Confirm Relocation"}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -388,12 +394,14 @@ const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any 
             pendingTasks.map((task) => (
               <TouchableOpacity 
                 key={task.name} 
-                style={styles.taskItem}
+                style={[
+                  styles.taskItem,
+                  activeTaskId === task.name && { borderColor: '#3fbf75', borderWidth: 2 }
+                ]}
                 onPress={() => {
-                  setSourceBin(task.source_pallet || '');
-                  setTargetBin(task.target_pallet || '');
+                  setExpectedSourceBin(task.source_pallet || '');
+                  setExpectedTargetBin(task.target_pallet || '');
                   setActiveTaskId(task.name);
-                  if (task.source_pallet) fetchPalletForBin(task.source_pallet);
                 }}
               >
                 <View style={styles.taskHeader}>

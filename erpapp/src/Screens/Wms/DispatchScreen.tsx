@@ -24,7 +24,6 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
   const { rfid, connectedDevice } = useBLE();
 
   const [palletRfid, setPalletRfid] = useState(route?.params?.initialSourcePallet || '');
-  const [itemRfid, setItemRfid] = useState('');
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
@@ -33,16 +32,9 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
   const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const [fetchingTasks, setFetchingTasks] = useState(false);
 
-  const [isValidMatch, setIsValidMatch] = useState(false);
-  const [validating, setValidating] = useState(false);
-
   useEffect(() => {
     if (isFocused && rfid) {
-      if (!palletRfid) {
-        setPalletRfid(rfid);
-      } else if (!itemRfid && rfid !== palletRfid) {
-        setItemRfid(rfid);
-      }
+      setPalletRfid(rfid);
       setSuccessMessage(null);
     }
 
@@ -50,34 +42,6 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
       fetchPendingTasks();
     }
   }, [rfid, isFocused]);
-
-  useEffect(() => {
-    const validateScans = async () => {
-      if (!palletRfid.trim() || !itemRfid.trim()) {
-        setIsValidMatch(false);
-        return;
-      }
-      setValidating(true);
-      try {
-        const url = `http://77.42.39.77:8000/wms/validate-dispatch?pallet_rfid=${encodeURIComponent(palletRfid.trim())}&item_rfid=${encodeURIComponent(itemRfid.trim())}`;
-        const response = await fetch(url);
-        if (response.ok) {
-          const data = await response.json();
-          setIsValidMatch(data.valid === true);
-        } else {
-          setIsValidMatch(false);
-        }
-      } catch (err) {
-        setIsValidMatch(false);
-      } finally {
-        setValidating(false);
-      }
-    };
-
-    // Small timeout to prevent spamming if typing manually
-    const timeoutId = setTimeout(() => validateScans(), 300);
-    return () => clearTimeout(timeoutId);
-  }, [palletRfid, itemRfid]);
 
   const fetchPendingTasks = async () => {
     setFetchingTasks(true);
@@ -95,25 +59,15 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
   };
 
   const handleDispatch = async () => {
-    if (!palletRfid.trim() || !itemRfid.trim()) {
-      Alert.alert('Error', 'Please scan both the Bin/Pallet RFID and the Item RFID.');
+    if (!palletRfid.trim()) {
+      Alert.alert('Error', 'Please scan the Bin/Pallet RFID.');
       return;
     }
 
-    if (activeTaskId && expectedPalletRfid) {
-      if (palletRfid.trim() !== expectedPalletRfid) {
-        Alert.alert('Validation Error', `Scanned location must match the selected task location: ${expectedPalletRfid}`);
-        return;
-      }
-    }
-
-    if (!isValidMatch) {
-      Alert.alert('Error', 'Scanned items do not match any marked-for-dispatch bin/item.');
+    if (!activeTaskId || !expectedPalletRfid) {
+      Alert.alert('Error', 'Please select a pending dispatch task.');
       return;
     }
-
-    // If we have an active task selected, we should rely on the task details, 
-    // but the backend dispatch validate should be enough.
 
     setLoading(true);
     setSuccessMessage(null);
@@ -124,14 +78,13 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           pallet_rfid: palletRfid.trim(),
-          item_rfid: itemRfid.trim(),
+          expected_location: expectedPalletRfid.trim(),
         }),
       });
 
       if (response.ok) {
-        setSuccessMessage(`Successfully dispatched Item from Bin!`);
+        setSuccessMessage(`Successfully dispatched items from Pallet!`);
         setPalletRfid('');
-        setItemRfid('');
         
         if (activeTaskId) {
           try {
@@ -148,7 +101,7 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
       } else {
         const errJson = await response.json().catch(() => ({}));
         const errMsg = errJson.detail || 'Failed to dispatch';
-        Alert.alert('ERPNext Error', 'Operation failed. Please try again.');
+        Alert.alert('ERPNext Error', errMsg);
       }
     } catch (err: any) {
       Alert.alert('Dispatch Failed', 'Operation failed. Please try again.');
@@ -261,36 +214,19 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
             ) : null}
           </View>
 
-          <Text style={styles.label}>2. Scan Item</Text>
-          <View style={styles.inputContainer}>
-            <Icon name="tag" size={18} color="#62788a" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Scan Item..."
-              value={itemRfid}
-              editable={false}
-              placeholderTextColor="#62788a"
-            />
-            {itemRfid ? (
-              <TouchableOpacity onPress={() => setItemRfid('')}>
-                <Icon name="x" size={18} color="#62788a" />
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
           <TouchableOpacity
             style={[
               styles.primaryButton, 
-              (loading || validating || !isValidMatch || !palletRfid || !itemRfid || (!!activeTaskId && !!expectedPalletRfid && palletRfid.trim() !== expectedPalletRfid)) && styles.disabledButton
+              (loading || !palletRfid || !activeTaskId || !expectedPalletRfid) && styles.disabledButton
             ]}
             onPress={handleDispatch}
-            disabled={loading || validating || !isValidMatch || !palletRfid || !itemRfid || (!!activeTaskId && !!expectedPalletRfid && palletRfid.trim() !== expectedPalletRfid)}
+            disabled={loading || !palletRfid || !activeTaskId || !expectedPalletRfid}
           >
-            {loading || validating ? (
+            {loading ? (
               <ActivityIndicator color="#0a0f16" />
             ) : (
               <Text style={styles.primaryButtonText}>
-                {(!isValidMatch && palletRfid && itemRfid) || (!!activeTaskId && !!expectedPalletRfid && palletRfid.trim() !== expectedPalletRfid) ? "Mismatch - Cannot Dispatch" : "Dispatch Item"}
+                {(!activeTaskId || !expectedPalletRfid) ? "Select a Task" : "Dispatch Pallet"}
               </Text>
             )}
           </TouchableOpacity>

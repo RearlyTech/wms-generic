@@ -32,6 +32,7 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
   const [availableQty, setAvailableQty] = useState<number | null>(null);
   const [itemUom, setItemUom] = useState('Nos');
   const [loadingItem, setLoadingItem] = useState(false);
+  const [mergeQty, setMergeQty] = useState('');
 
   const [simulatedRfid, setSimulatedRfid] = useState('');
   const [loading, setLoading] = useState(false);
@@ -44,6 +45,8 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
   const [isManual, setIsManual] = useState(false);
 
   const [activeTaskId, setActiveTaskId] = useState(route?.params?.taskId || null);
+  const [expectedPalletA, setExpectedPalletA] = useState('');
+  const [expectedPalletB, setExpectedPalletB] = useState('');
   const [pendingTasks, setPendingTasks] = useState<any[]>([]);
   const [fetchingTasks, setFetchingTasks] = useState(false);
 
@@ -153,9 +156,11 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          pallet_a: palletA,
-          pallet_b: palletB,
+          pallet_a: palletA.trim(),
+          pallet_b: palletB.trim(),
           item_code: itemCode,
+          expected_source: activeTaskId ? expectedPalletA : null,
+          expected_target: activeTaskId ? expectedPalletB : null,
         }),
       });
 
@@ -358,14 +363,16 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
           )}
 
           <TouchableOpacity
-            style={[styles.primaryButton, loading && styles.disabledButton]}
+            style={[styles.primaryButton, (loading || !activeTaskId || !palletA || !palletB) && styles.disabledButton]}
             onPress={handleMerge}
-            disabled={loading}
+            disabled={loading || !activeTaskId || !palletA || !palletB}
           >
             {loading ? (
               <ActivityIndicator color="#0a0f16" />
             ) : (
-              <Text style={styles.primaryButtonText}>Merge & Consolidate</Text>
+              <Text style={styles.primaryButtonText}>
+                {!activeTaskId ? "Select a Task" : (!palletA || !palletB) ? "Scan Both Pallets First" : "Merge & Consolidate"}
+              </Text>
             )}
           </TouchableOpacity>
         </View>
@@ -389,12 +396,14 @@ const MergePalletsScreen = ({ navigation, route }: { navigation: any, route?: an
             pendingTasks.map((task) => (
               <TouchableOpacity
                 key={task.name}
-                style={styles.taskItem}
+                style={[
+                  styles.taskItem,
+                  activeTaskId === task.name && { borderColor: '#3fbf75', borderWidth: 2 }
+                ]}
                 onPress={() => {
-                  setPalletA(task.source_pallet || '');
-                  setPalletB(task.target_pallet || '');
+                  setExpectedPalletA(task.source_pallet || '');
+                  setExpectedPalletB(task.target_pallet || '');
                   setActiveTaskId(task.name);
-                  if (task.source_pallet) fetchPalletADetails(task.source_pallet);
                 }}
               >
                 <View style={styles.taskHeader}>
