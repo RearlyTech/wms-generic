@@ -20,7 +20,8 @@ export default function LoginScreen({ navigation }: any) {
     try {
       await directus.login({ email, password });
       // After successful login, navigate to the Scan screen
-      navigation.replace('Scan');
+      // navigation.replace('Scan');
+      navigation.replace('WmsDashboard');
     } catch (err: any) {
       console.error('Login failed:', err);
       setError(err.errors?.[0]?.message || 'Invalid email or password.');
@@ -33,7 +34,7 @@ export default function LoginScreen({ navigation }: any) {
     <View style={styles.container}>
       <Text style={styles.title}>ERP App</Text>
       <Text style={styles.subtitle}>Login with Directus</Text>
-      
+
       {error && <Text style={styles.errorText}>{error}</Text>}
 
       <TextInput

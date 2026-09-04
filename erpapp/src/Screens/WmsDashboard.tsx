@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -125,40 +125,48 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
     }
   }, [rfid, isFocused]);
 
-  const [alerts, setAlerts] = useState<string[]>([]);
+  const [machineStatus, setMachineStatus] = useState<'online' | 'offline' | 'loading'>('loading');
+  const [metrics, setMetrics] = useState<any>({ temperature: null, humidity: null, energy: null });
+  const [thresholdValues, setThresholdValues] = useState<any>({ temperature: 0, humidity: 0, energy: 0 });
 
   useEffect(() => {
     if (!isFocused) return;
     const fetchAlarms = async () => {
       try {
-        const [thRes, tempRes, energyRes] = await Promise.all([
+        const [thRes, tempRes, energyRes, gatewayRes] = await Promise.all([
           fetch('http://77.42.39.77:8000/wms/thresholds'),
           fetch('http://77.42.39.77:8000/api/temperature/live'),
           fetch('http://77.42.39.77:8000/api/energy/live'),
+          fetch('http://77.42.39.77:8000/wms/gateway-status'),
         ]);
 
         const thresholds = await thRes.json();
         const tempData = await tempRes.json();
         const energyData = await energyRes.json();
+        const gatewayData = await gatewayRes.json();
 
-        let newAlerts: string[] = [];
+        if (!gatewayData.gateway_online) {
+          setMachineStatus('offline');
+          return;
+        }
+
+        setMachineStatus('online');
+        setThresholdValues(thresholds);
+
+        let t = null, h = null, e = null;
+
         if (tempData.success && tempData.values) {
-          if (tempData.values.temperature > thresholds.temperature) {
-            newAlerts.push(`High Temp: ${tempData.values.temperature}°C`);
-          }
-          if (tempData.values.humidity > thresholds.humidity) {
-            newAlerts.push(`High Humidity: ${tempData.values.humidity}%`);
-          }
+          t = tempData.values.temperature;
+          h = tempData.values.humidity;
         }
         if (energyData.success && energyData.values) {
-          if (energyData.values.activeEnergy > thresholds.energy) {
-            newAlerts.push(`High Energy: ${energyData.values.activeEnergy}kWh`);
-          }
+          e = energyData.values.activeEnergy;
         }
 
-        setAlerts(newAlerts);
+        setMetrics({ temperature: t, humidity: h, energy: e });
       } catch (err) {
         console.warn("Failed to fetch alarms", err);
+        setMachineStatus('offline');
       }
     };
 
@@ -191,25 +199,44 @@ const WmsDashboard = ({ navigation, route }: { navigation: any; route: any }) =>
 
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={() => navigation.navigate('Scan')}
           style={styles.backButton}
         >
           <Icon name="arrow-left" size={24} color="#ecf1f4" />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <Text style={styles.headerText}>WMS Actions</Text>
       </View>
 
-      {/* ALERTS */}
-      {alerts.length > 0 && (
-        <View style={styles.alertCard}>
-          <Icon name="alert-triangle" size={24} color="#e0654f" />
-          <View style={{ marginLeft: 10, flex: 1 }}>
-            <Text style={styles.alertTitle}>Threshold Exceeded!</Text>
-            {alerts.map((a, i) => <Text key={i} style={styles.alertText}>• {a}</Text>)}
-          </View>
+      {/* METRICS DASHBOARD */}
+      <View style={styles.metricsContainer}>
+        <View style={styles.statusRow}>
+          <Text style={styles.statusLabel}>Machine Status:</Text>
+          <Text style={[styles.statusValue, { color: machineStatus === 'online' ? '#3fbf75' : (machineStatus === 'offline' ? '#e0654f' : '#9db0bd') }]}>
+            {machineStatus === 'online' ? 'Online' : machineStatus === 'offline' ? 'Machine is offline' : 'Checking...'}
+          </Text>
         </View>
-      )}
+
+        {machineStatus === 'online' && (
+          <View style={styles.metricsGrid}>
+            <View style={[styles.metricCard, { backgroundColor: metrics.temperature > thresholdValues.temperature ? '#e0654f' : '#3fbf75' }]}>
+              <Icon name="thermometer" size={20} color="#fff" />
+              <Text style={styles.metricLabel}>Temp</Text>
+              <Text style={styles.metricValue}>{metrics.temperature !== null ? parseFloat(metrics.temperature).toFixed(1) + '°C' : '--'}</Text>
+            </View>
+            <View style={[styles.metricCard, { backgroundColor: metrics.humidity > thresholdValues.humidity ? '#e0654f' : '#3fbf75' }]}>
+              <Icon name="droplets" size={20} color="#fff" />
+              <Text style={styles.metricLabel}>Humidity</Text>
+              <Text style={styles.metricValue}>{metrics.humidity !== null ? parseFloat(metrics.humidity).toFixed(1) + '%' : '--'}</Text>
+            </View>
+            <View style={[styles.metricCard, { backgroundColor: metrics.energy > thresholdValues.energy ? '#e0654f' : '#3fbf75' }]}>
+              <Icon name="zap" size={20} color="#fff" />
+              <Text style={styles.metricLabel}>Energy</Text>
+              <Text style={styles.metricValue}>{metrics.energy !== null ? parseFloat(metrics.energy).toFixed(1) + 'kWh' : '--'}</Text>
+            </View>
+          </View>
+        )}
+      </View>
 
       {/* ACTIVE TAG CARD */}
       {scannedTag ? (
@@ -387,6 +414,58 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontFamily: 'Archivo', fontSize: wp(3.5),
     fontWeight: '500',
+  },
+  metricsContainer: {
+    paddingHorizontal: wp(4),
+    paddingTop: hp(2),
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: hp(1.5),
+  },
+  statusLabel: {
+    fontFamily: 'Archivo',
+    fontSize: wp(4),
+    fontWeight: '600',
+    color: '#ecf1f4',
+    marginRight: wp(2),
+  },
+  statusValue: {
+    fontFamily: 'Archivo',
+    fontSize: wp(4),
+    fontWeight: 'bold',
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  metricCard: {
+    width: (width - wp(12)) / 3,
+    borderRadius: wp(3),
+    paddingVertical: hp(1.5),
+    paddingHorizontal: wp(2),
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  metricLabel: {
+    fontFamily: 'Archivo',
+    fontSize: wp(3),
+    color: '#ffffff',
+    marginTop: hp(0.5),
+    fontWeight: '600',
+  },
+  metricValue: {
+    fontFamily: 'Archivo',
+    fontSize: wp(3.5),
+    color: '#ffffff',
+    fontWeight: 'bold',
+    marginTop: hp(0.2),
   },
 });
 

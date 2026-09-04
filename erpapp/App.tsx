@@ -6,7 +6,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { BLEProvider } from './src/Screens/Blecontext';
 
-import Scan from './src/Screens/scan';
+// import Scan from './src/Screens/scan';
 import ItemDetailScreen from './src/Screens/ItemDetailScreen';
 import WmsDashboard from './src/Screens/WmsDashboard';
 import ReceivePalletScreen from './src/Screens/Wms/ReceivePalletScreen';
@@ -32,7 +32,7 @@ const Stack = createStackNavigator();
 
 function App() {
   const hasToken = getItem('authToken');
-  const initialRoute = hasToken ? "Scan" : "Login";
+  const initialRoute = hasToken ? "WmsDashboard" : "Login";
 
   return (
     <SafeAreaProvider>
@@ -44,7 +44,7 @@ function App() {
               screenOptions={{ headerShown: false }}
             >
               <Stack.Screen name="Login" component={LoginScreen} />
-              <Stack.Screen name="Scan" component={Scan} />
+              {/* <Stack.Screen name="Scan" component={Scan} /> */}
               <Stack.Screen name="ItemDetailScreen" component={ItemDetailScreen} />
               <Stack.Screen name="WmsDashboard" component={WmsDashboard} />
               <Stack.Screen name="ReceivePallet" component={ReceivePalletScreen} />

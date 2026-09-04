@@ -135,6 +135,7 @@ export default function WarehouseDashboard() {
   const [tempThreshold, setTempThreshold] = useState("30");
   const [humThreshold, setHumThreshold] = useState("70");
   const [energyThreshold, setEnergyThreshold] = useState("50");
+  const [liveData, setLiveData] = useState({ temperature: "--", energy: "--" });
 
   useEffect(() => {
     if (!backendUrl) return;
@@ -149,13 +150,15 @@ export default function WarehouseDashboard() {
         }
 
         let newAlerts: string[] = [];
+        let t = "--", e = "--";
 
         let tempRes = await fetchWithAuth(`${backendUrl}/api/temperature/live`);
         if (tempRes.ok) {
            let tempData = await tempRes.json();
            if (tempData.success && tempData.values) {
+              t = parseFloat(tempData.values.temperature).toFixed(1);
               if (tempData.values.temperature > currentThresholds.temperature) {
-                 newAlerts.push(`High Temperature: ${tempData.values.temperature}°C (Limit: ${currentThresholds.temperature}°C)`);
+                 newAlerts.push(`High Temperature: ${t}°C (Limit: ${currentThresholds.temperature}°C)`);
               }
               if (tempData.values.humidity > currentThresholds.humidity) {
                  newAlerts.push(`High Humidity: ${tempData.values.humidity}% (Limit: ${currentThresholds.humidity}%)`);
@@ -167,11 +170,14 @@ export default function WarehouseDashboard() {
         if (energyRes.ok) {
            let energyData = await energyRes.json();
            if (energyData.success && energyData.values) {
+              e = parseFloat(energyData.values.activeEnergy).toFixed(1);
               if (energyData.values.activeEnergy > currentThresholds.energy) {
-                 newAlerts.push(`High Energy: ${energyData.values.activeEnergy}kWh (Limit: ${currentThresholds.energy}kWh)`);
+                 newAlerts.push(`High Energy: ${e}kWh (Limit: ${currentThresholds.energy}kWh)`);
               }
            }
         }
+        
+        setLiveData({ temperature: t, energy: e });
         setAlerts(newAlerts);
       } catch (err) {
         console.warn("Failed to fetch thresholds/live metrics", err);
@@ -236,14 +242,14 @@ export default function WarehouseDashboard() {
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm transition cursor-pointer"
           >
             <Factory className="h-4 w-4" />
-            Energy Analytics
+            {liveData.energy !== "--" ? `${liveData.energy} kWh` : 'Energy'}
           </button>
           <button
             onClick={() => router.push("/temperature-dashboard")}
             className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 shadow-sm transition cursor-pointer"
           >
             <Thermometer className="h-4 w-4" />
-            Temperature
+            {liveData.temperature !== "--" ? `${liveData.temperature} °C` : 'Temperature'}
           </button>
           <button
             onClick={() => {
