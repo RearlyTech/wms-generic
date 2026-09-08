@@ -69,6 +69,8 @@ export default function ExceptionReportPage() {
         return { color: "text-purple-700", bg: "bg-purple-50", border: "border-purple-200", icon: <Tag className="w-5 h-5 text-purple-600" /> };
       case "Location Move":
         return { color: "text-slate-700", bg: "bg-slate-100", border: "border-slate-300", icon: <MapPin className="w-5 h-5 text-slate-600" /> };
+      case "Stock Count":
+        return { color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", icon: <PackageCheck className="w-5 h-5 text-blue-600" /> };
       default:
         return { color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", icon: <Activity className="w-5 h-5 text-blue-600" /> };
     }

@@ -97,6 +97,9 @@ const ExceptionReportScreen = ({ navigation }: { navigation: any }) => {
               } else if (log.activity_type === 'Location Move') {
                 badgeColor = '#455A64';
                 badgeBg = '#ECEFF1';
+              } else if (log.activity_type === 'Stock Count') {
+                badgeColor = '#1976D2';
+                badgeBg = '#E3F2FD';
               }
 
               const formattedTime = log.creation ? log.creation.substring(11, 16) : '';

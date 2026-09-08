@@ -2,26 +2,8 @@
 
 import { useState, useMemo } from "react";
 import { WarehouseNode, Item } from "@/lib/warehouse-data";
-import { ArrowLeft, Search, Loader2, MapPin, Package, AlertTriangle, ChevronRight } from "lucide-react";
-import { useRouter } from "next/navigation";
-
-const isItemExpiringSoon = (expiryDate?: string, filterValue?: string) => {
-    if (!expiryDate || filterValue === "all" || !filterValue) return false;
-    
-    const exp = new Date(expiryDate);
-    const now = new Date();
-    
-    if (filterValue === "0") {
-        return exp.getFullYear() === now.getFullYear() && exp.getMonth() === now.getMonth();
-    } else {
-        const monthsToAdd = parseInt(filterValue, 10);
-        const futureDate = new Date(now);
-        futureDate.setMonth(now.getMonth() + monthsToAdd);
-        return exp <= futureDate;
-    }
-};
-
-interface Props {
+import { ArrowLeft, Search, Loader2, MapPin, Package, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";interface Props {
     initialWarehouses: {id: string, name: string}[];
     initialRacksMap: Record<string, WarehouseNode[]>;
     backendUrl: string;
@@ -30,7 +12,6 @@ interface Props {
 export default function WarehouseClient({ initialWarehouses, initialRacksMap, backendUrl }: Props) {
     const router = useRouter();
     const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
-    const [expiryFilter, setExpiryFilter] = useState<string>("0");
     const [markingBatch, setMarkingBatch] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
 
@@ -49,28 +30,6 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
     const rootNodes = useMemo(() => {
         return selectedWarehouse ? (initialRacksMap[selectedWarehouse] || []) : [];
     }, [selectedWarehouse, initialRacksMap]);
-
-    // Recursive search for expiring items
-    const expiringItems = useMemo(() => {
-        if (expiryFilter === "all") return [];
-        
-        const items: { item: Item, path: string[], node: WarehouseNode }[] = [];
-        
-        const searchNode = (node: WarehouseNode, path: string[]) => {
-            if (!node) return;
-            const currentPath = [...path, node.name];
-            (node.items || []).forEach(item => {
-                if (isItemExpiringSoon(item.expiryDate, expiryFilter)) {
-                    items.push({ item, path: currentPath, node });
-                }
-            });
-            (node.children || []).forEach(child => searchNode(child, currentPath));
-        };
-
-        rootNodes.forEach(root => searchNode(root, []));
-        
-        return items;
-    }, [rootNodes, expiryFilter]);
 
     const handleL1Click = (node: WarehouseNode) => {
         setSelectedL1(node);
@@ -274,18 +233,7 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                     </div>
                 </div>
                 
-                <div className="flex items-center gap-3">
-                    <select 
-                        value={expiryFilter}
-                        onChange={(e) => setExpiryFilter(e.target.value)}
-                        className="bg-white border border-slate-300 text-slate-700 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block px-3 py-2 outline-none font-medium shadow-sm"
-                    >
-                        <option value="0">Expires This Month</option>
-                        <option value="1">Expires in 1 Month</option>
-                        <option value="2">Expires in 2 Months</option>
-                        <option value="all">No Expiry Filter</option>
-                    </select>
-                    {selectedL1 && (
+                <div className="flex items-center gap-3">                    {selectedL1 && (
                         <button 
                             onClick={clearSelection}
                             className="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors border border-slate-300 text-sm shadow-sm"
@@ -375,22 +323,6 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                                                                 const l3Children = l3Node.children || [];
                                                                 const isEmpty = l3Items.length === 0 && l3Children.length === 0;
                                                                 
-                                                                // Search recursively for expiring items in this L3 node
-                                                                let hasExpiringItems = false;
-                                                                const checkExpiring = (n: WarehouseNode) => {
-                                                                    if (!n) return;
-                                                                    (n.items || []).some(item => {
-                                                                        if (isItemExpiringSoon(item.expiryDate, expiryFilter)) {
-                                                                            hasExpiringItems = true;
-                                                                            return true;
-                                                                        }
-                                                                        return false;
-                                                                    });
-                                                                    if (hasExpiringItems) return;
-                                                                    (n.children || []).forEach(checkExpiring);
-                                                                };
-                                                                checkExpiring(l3Node);
-                                                                
                                                                 const hasChildren = l3Children.length > 0;
                                                                 
                                                                 return (
@@ -399,11 +331,9 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                                                                         className={`relative border-2 rounded-lg p-2 h-24 flex flex-col items-center justify-center transition-all cursor-pointer group ${
                                                                             isL3Selected 
                                                                             ? 'border-indigo-500 bg-indigo-50 shadow-md ring-2 ring-indigo-500/20 ring-offset-1' 
-                                                                            : hasExpiringItems
-                                                                                ? 'border-rose-400 bg-rose-50 shadow-sm'
-                                                                                : isEmpty 
-                                                                                    ? 'border-slate-200 border-dashed bg-white hover:border-slate-300' 
-                                                                                    : 'border-slate-300 bg-white hover:border-indigo-300 shadow-sm'
+                                                                            : isEmpty 
+                                                                                ? 'border-slate-200 border-dashed bg-white hover:border-slate-300' 
+                                                                                : 'border-slate-300 bg-white hover:border-indigo-300 shadow-sm'
                                                                         }`}
                                                                         onClick={(e) => { 
                                                                             e.stopPropagation(); 
@@ -461,7 +391,7 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                                                                                             </span>
                                                                                         </div>
                                                                                         {item.expiryDate && (
-                                                                                            <span className={`text-[9px] font-medium mt-1 ${isItemExpiringSoon(item.expiryDate, expiryFilter) ? 'text-rose-700 font-bold bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 inline-block self-start' : 'text-slate-500'}`}>
+                                                                                            <span className={`text-[9px] font-medium mt-1 text-slate-500`}>
                                                                                                 Exp: {item.expiryDate}
                                                                                             </span>
                                                                                         )}
@@ -521,69 +451,6 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                     </>
                 )}
                 </div>
-                
-                {expiryFilter !== "all" && (
-                    <div className="w-80 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden shrink-0">
-                        <div className="p-4 border-b border-slate-200 bg-slate-50">
-                            <h3 className="text-rose-600 font-bold flex items-center gap-2 text-sm">
-                                <AlertTriangle className="w-4 h-4" />
-                                Expiring Items
-                            </h3>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-                            {expiringItems.length === 0 ? (
-                                <p className="text-slate-500 text-sm text-center mt-6 font-medium">No items found matching this filter.</p>
-                            ) : (
-                                expiringItems.map((entry, i) => (
-                                    <div key={`${entry.item.itemCode}-${i}`} className="bg-white border border-slate-200 hover:border-rose-300 hover:shadow-md rounded-xl p-3 shadow-sm transition-all cursor-pointer" >
-                                        <div className="flex justify-between items-start mb-2 gap-2">
-                                            <h4 className="text-xs font-bold text-slate-800 leading-tight">{entry.item.itemName}</h4>
-                                            <span className="text-[9px] font-bold text-rose-700 bg-rose-50 border border-rose-100 px-1.5 py-0.5 rounded whitespace-nowrap">Exp: {entry.item.expiryDate}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
-                                                {entry.item.itemCode}
-                                            </span>
-                                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">
-                                                {entry.item.totalWeight}{entry.item.uom}
-                                            </span>
-                                        </div>
-                                        <div className="text-[10px] font-medium text-slate-500 flex items-center justify-between border-t border-slate-100 pt-2 mt-2">
-                                            <div className="flex items-center gap-1.5">
-                                                <MapPin className="w-3 h-3 shrink-0" />
-                                                <span className="truncate">{entry.path.join(" > ")}</span>
-                                            </div>
-                                        </div>
-                                        
-                                        {entry.item.batchNo && (
-                                            <div className="mt-2 pt-2 border-t border-slate-100">
-                                                {entry.item.markedForDispatch ? (
-                                                    <div className="w-full py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded text-center text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm">
-                                                        Marked for Dispatch
-                                                    </div>
-                                                ) : (
-                                                    <button 
-                                                        disabled={markingBatch === entry.item.batchNo}
-                                                        onClick={async (e) => {
-                                                            e.stopPropagation();
-                                                            if (!entry.item.batchNo) return;
-                                                            await markForDispatch(entry.item.batchNo);
-                                                        }}
-                                                        className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded text-center text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
-                                                    >
-                                                        {markingBatch === entry.item.batchNo ? (
-                                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                        ) : "Mark for Dispatch"}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

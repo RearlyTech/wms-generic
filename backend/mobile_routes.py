@@ -940,7 +940,7 @@ def api_wms_stock_count(data: WmsStockCountSchema):
                     )
                 else:
                     log_wms_activity(
-                        activity_type="Stock Discrepancy",
+                        activity_type="Stock Count",
                         operator="System",
                         target_location=target_warehouse,
                         details="Stock Count completed. All items matched successfully."

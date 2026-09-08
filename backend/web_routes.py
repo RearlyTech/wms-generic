@@ -1797,6 +1797,57 @@ def get_slow_moving_items():
         print("Error fetching slow moving items:", e)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/wms/expiring-items")
+def get_expiring_items():
+    from datetime import datetime
+    try:
+        r_bin = requests.get(f'{ERP_URL}/api/resource/Bin?fields=["item_code","warehouse","actual_qty"]&limit_page_length=1000', headers=HEADERS)
+        bins = r_bin.json().get("data", []) if r_bin.status_code == 200 else []
+        active_bins = [b for b in bins if float(b.get("actual_qty", 0)) > 0]
+        
+        r_items = requests.get(f'{ERP_URL}/api/resource/Item?fields=["name","item_name","item_group"]&limit_page_length=1000', headers=HEADERS)
+        items_data = r_items.json().get("data", []) if r_items.status_code == 200 else []
+        item_details = {item["name"]: item for item in items_data}
+
+        r_batch = requests.get(f'{ERP_URL}/api/resource/Batch?fields=["name","item","expiry_date"]&limit_page_length=5000', headers=HEADERS)
+        batches = r_batch.json().get("data", []) if r_batch.status_code == 200 else []
+        
+        batch_map = {}
+        for b in batches:
+            if b.get("expiry_date"):
+                if b["item"] not in batch_map or b["expiry_date"] < batch_map[b["item"]]:
+                    batch_map[b["item"]] = b["expiry_date"]
+                    
+        now = datetime.now()
+        results = []
+        for b in active_bins:
+            item_code = b["item_code"]
+            expiry_date_str = batch_map.get(item_code)
+            
+            if not expiry_date_str:
+                continue
+                
+            info = item_details.get(item_code, {})
+            
+            expiry_date = datetime.strptime(expiry_date_str, "%Y-%m-%d")
+            days_until_expiry = (expiry_date.date() - now.date()).days
+            
+            results.append({
+                "warehouse": b["warehouse"],
+                "itemCode": item_code,
+                "itemName": info.get("item_name", item_code),
+                "itemGroup": info.get("item_group", "Unknown"),
+                "quantity": float(b["actual_qty"]),
+                "expiryDate": expiry_date_str,
+                "daysUntilExpiry": days_until_expiry
+            })
+            
+        results.sort(key=lambda x: x["daysUntilExpiry"])
+        return results
+    except Exception as e:
+        print("Error fetching expiring items:", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # --- PALLET APPROVAL SYSTEM ---
 import os

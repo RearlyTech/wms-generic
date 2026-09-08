@@ -74,6 +74,16 @@ interface SlowMovingItem {
   creationDate: string;
 }
 
+interface ExpiringItem {
+  warehouse: string;
+  itemCode: string;
+  itemName: string;
+  itemGroup: string;
+  quantity: number;
+  expiryDate: string;
+  daysUntilExpiry: number;
+}
+
 export default function WarehouseCheckPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -89,14 +99,17 @@ export default function WarehouseCheckPage() {
   const [batchCheckData, setBatchCheckData] = useState<ItemCheckResponse | null>(null);
   const [emptyBins, setEmptyBins] = useState<EmptyBin[]>([]);
   const [slowMovingItems, setSlowMovingItems] = useState<SlowMovingItem[]>([]);
+  const [expiringItems, setExpiringItems] = useState<ExpiringItem[]>([]);
 
   // UI state
   const [isSearchingItem, setIsSearchingItem] = useState<boolean>(false);
   const [isSearchingBatch, setIsSearchingBatch] = useState<boolean>(false);
   const [isSearchingEmptyBins, setIsSearchingEmptyBins] = useState<boolean>(false);
   const [isSearchingSlowMoving, setIsSearchingSlowMoving] = useState<boolean>(false);
+  const [isSearchingExpiringItems, setIsSearchingExpiringItems] = useState<boolean>(false);
   const [showEmptyBinsList, setShowEmptyBinsList] = useState<boolean>(false);
   const [showSlowMovingList, setShowSlowMovingList] = useState<boolean>(false);
+  const [showExpiringItemsList, setShowExpiringItemsList] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Authenticate session check and fetch items
@@ -201,6 +214,8 @@ export default function WarehouseCheckPage() {
   const handleShowEmptyBins = async () => {
     setIsSearchingEmptyBins(true);
     setErrorMessage(null);
+    setShowSlowMovingList(false);
+    setShowExpiringItemsList(false);
     try {
       const res = await fetch(`${backendUrl}/empty-bins`, { mode: "cors" });
       if (!res.ok) throw new Error("Error retrieving empty warehouses");
@@ -219,6 +234,7 @@ export default function WarehouseCheckPage() {
     setIsSearchingSlowMoving(true);
     setErrorMessage(null);
     setShowEmptyBinsList(false);
+    setShowExpiringItemsList(false);
     try {
       const res = await fetch(`${backendUrl}/wms/slow-moving-items`, { mode: "cors" });
       if (!res.ok) throw new Error("Error retrieving slow moving items");
@@ -229,6 +245,25 @@ export default function WarehouseCheckPage() {
       setErrorMessage(err.message || "Failed to retrieve slow moving items.");
     } finally {
       setIsSearchingSlowMoving(false);
+    }
+  };
+
+  // Handle Fetch Expiring Items API request
+  const handleShowExpiringItems = async () => {
+    setIsSearchingExpiringItems(true);
+    setErrorMessage(null);
+    setShowEmptyBinsList(false);
+    setShowSlowMovingList(false);
+    try {
+      const res = await fetch(`${backendUrl}/wms/expiring-items`, { mode: "cors" });
+      if (!res.ok) throw new Error("Error retrieving expiring items");
+      const data = await res.json();
+      setExpiringItems(data);
+      setShowExpiringItemsList(true);
+    } catch (err: any) {
+      setErrorMessage(err.message || "Failed to retrieve expiring items.");
+    } finally {
+      setIsSearchingExpiringItems(false);
     }
   };
 
@@ -391,6 +426,22 @@ export default function WarehouseCheckPage() {
                   </>
                 ) : (
                   "Show Slow Moving FG"
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleShowExpiringItems}
+                disabled={isSearchingExpiringItems}
+                className="w-full mt-3 py-2.5 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-bold text-xs rounded-lg transition flex items-center justify-center gap-1.5 shadow"
+              >
+                {isSearchingExpiringItems ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Finding Expiring Items...
+                  </>
+                ) : (
+                  "Show Expiring Items"
                 )}
               </button>
             </div>
@@ -699,6 +750,70 @@ export default function WarehouseCheckPage() {
               ) : (
                 <div className="py-8 text-center text-xs text-slate-400 font-mono border-2 border-dashed border-slate-200 rounded-xl">
                   No stock items found in the warehouse.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Expiring Items Results */}
+          {showExpiringItemsList && (
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4.5 w-4.5 text-rose-500" />
+                  <span className="text-sm font-bold text-slate-800 font-mono">
+                    Expiring Items
+                  </span>
+                </div>
+                <button
+                  onClick={() => setShowExpiringItemsList(false)}
+                  className="text-xs text-slate-400 hover:text-slate-605 font-mono"
+                >
+                  Hide List
+                </button>
+              </div>
+
+              {expiringItems.length > 0 ? (
+                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-inner bg-slate-50/50">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 text-slate-500 uppercase tracking-wider font-mono text-[9px] border-b border-slate-200">
+                        <th className="py-2.5 px-3">Warehouse</th>
+                        <th className="py-2.5 px-3">Item Name</th>
+                        <th className="py-2.5 px-3">Item Group</th>
+                        <th className="py-2.5 px-3 text-right">Quantity</th>
+                        <th className="py-2.5 px-3">Expiry Date</th>
+                        <th className="py-2.5 px-3 text-right">Days Until Expiry</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {expiringItems.map((item, idx) => (
+                        <tr key={idx} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/40 transition font-mono">
+                          <td className="py-2.5 px-3 font-semibold text-slate-700">{item.warehouse}</td>
+                          <td className="py-2.5 px-3 text-slate-600">
+                            <span className="font-bold">{item.itemName}</span><br />
+                            <span className="text-[9px] text-slate-400">{item.itemCode}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600">{item.itemGroup}</td>
+                          <td className="py-2.5 px-3 text-right font-bold text-slate-800">{item.quantity}</td>
+                          <td className="py-2.5 px-3 text-slate-600">{item.expiryDate}</td>
+                          <td className="py-2.5 px-3 text-right">
+                            <span className={`px-2 py-1 rounded text-[10px] font-bold ${
+                              item.daysUntilExpiry < 30 ? "bg-rose-50 text-rose-700 border border-rose-200" : 
+                              item.daysUntilExpiry < 90 ? "bg-amber-50 text-amber-700 border border-amber-200" : 
+                              "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            }`}>
+                              {item.daysUntilExpiry} Days
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="py-8 text-center text-xs text-slate-400 font-mono border-2 border-dashed border-slate-200 rounded-xl">
+                  No expiring items found in the warehouse.
                 </div>
               )}
             </div>

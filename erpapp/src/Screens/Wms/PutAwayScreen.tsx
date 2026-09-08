@@ -50,7 +50,8 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
         const response = await fetch('http://77.42.39.77:8000/wms/empty-bins');
         if (response.ok) {
           const json = await response.json();
-          setWarehouses(json);
+          const marineBins = json.filter((bin: string) => bin.toLowerCase().includes('marine'));
+          setWarehouses(marineBins);
         }
       } catch (err) {
         console.error('Error fetching warehouses:', err);
