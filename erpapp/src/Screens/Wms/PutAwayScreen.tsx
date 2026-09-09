@@ -176,10 +176,10 @@ const PutAwayScreen = ({ navigation }: { navigation: any }) => {
       } else {
         const errJson = await response.json().catch(() => ({}));
         const errMsg = errJson.detail || 'Failed to put away';
-        Alert.alert('ERPNext Error', 'Operation failed. Please try again.');
+        Alert.alert('ERPNext Error', err.message || 'Operation failed. Please try again.');
       }
     } catch (err: any) {
-      Alert.alert('Put Away Failed', 'Operation failed. Please try again.');
+      Alert.alert('Put Away Failed', err.message || 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }

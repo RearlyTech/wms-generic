@@ -30,6 +30,8 @@ def api_wms_receive(data: WmsReceiveSchema):
             pass
             
         return {"message": "Success", "stock_entry": se["name"]}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -68,6 +70,8 @@ def api_get_empty_bins():
         # 4. Filter to get only empty Bins
         empty_bins = [b for b in bins if b not in occupied_bins]
         return empty_bins
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -76,6 +80,8 @@ def api_resolve_warehouse(rfid: str):
     try:
         resolved = resolve_warehouse_from_rfid(rfid)
         return {"warehouse": resolved}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -89,6 +95,8 @@ def api_get_first_empty_bin():
         if empty_bins:
             return {"empty_bin": empty_bins[0]}
         return {"empty_bin": f"BIN 001 - {company_abbr}"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -117,6 +125,8 @@ def api_wms_put_away(data: WmsPutAwaySchema):
             pass
             
         return {"message": "Success"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -136,6 +146,8 @@ def api_get_mobile_tasks():
         if r.status_code == 200:
             return r.json().get("data", [])
         return []
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -144,6 +156,8 @@ def api_complete_wms_task(task_id: str):
     try:
         payload = {"status": "Completed"}
         return erp_put("WMS Task", task_id, payload)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -176,6 +190,8 @@ def api_wms_retrieve(data: WmsRetrieveSchema):
             perform_stock_transfer(item["item_code"], float(item["actual_qty"]), source_wh, dest_wh)
             
         return {"message": "Success"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -221,6 +237,8 @@ def api_wms_bin_pallet_lookup(bin_id: str):
                 }
                 
         return {"error": "No pallet currently assigned to this bin location."}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -233,20 +251,21 @@ def api_wms_move(data: WmsMoveSchema):
         pallet_name = resolve_warehouse_from_rfid(data.source_rfid)
         target_bin = resolve_warehouse_from_rfid(data.destination_id)
         
-        if data.expected_source and pallet_name != data.expected_source:
-            raise Exception(f"Scanned source '{pallet_name}' does not match expected '{data.expected_source}'")
-            
-        if data.expected_target and target_bin != data.expected_target:
-            raise Exception(f"Scanned target '{target_bin}' does not match expected '{data.expected_target}'")
-        
-        old_parent = "None"
+        old_parent_full = "None"
         try:
             r_wh = requests.get(f"{ERP_URL}/api/resource/Warehouse/{pallet_name}", headers=HEADERS)
             if r_wh.status_code == 200:
-                old_parent = r_wh.json().get("data", {}).get("parent_warehouse") or "None"
-                old_parent = old_parent.replace(f" - {company_abbr}", "")
+                old_parent_full = r_wh.json().get("data", {}).get("parent_warehouse") or "None"
         except Exception:
             pass
+
+        if data.expected_source and old_parent_full != data.expected_source:
+            raise HTTPException(status_code=400, detail=f"Scanned source bin '{old_parent_full}' does not match expected '{data.expected_source}'")
+            
+        if data.expected_target and target_bin != data.expected_target:
+            raise HTTPException(status_code=400, detail=f"Scanned target bin '{target_bin}' does not match expected '{data.expected_target}'")
+        
+        old_parent = old_parent_full.replace(f" - {company_abbr}", "") if old_parent_full != "None" else "None"
             
         erp_put("Warehouse", pallet_name, {"parent_warehouse": target_bin})
         
@@ -262,6 +281,10 @@ def api_wms_move(data: WmsMoveSchema):
             pass
             
         return {"message": "Success"}
+    except HTTPException:
+        raise
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -272,7 +295,7 @@ def api_wms_repack(data: WmsRepackSchema):
         
         src_wh = resolve_warehouse_from_rfid(data.item_rfid)
         if not exists("Warehouse", src_wh):
-            raise Exception("Source pallet/bin not found.")
+            raise HTTPException(status_code=400, detail="Source pallet/bin not found.")
             
         # Find the item in the source pallet
         r = requests.get(
@@ -281,14 +304,14 @@ def api_wms_repack(data: WmsRepackSchema):
             params={"filters": json.dumps([["warehouse", "=", src_wh], ["actual_qty", ">", 0]]), "fields": '["item_code", "actual_qty"]'}
         )
         if r.status_code != 200 or not r.json().get("data"):
-            raise Exception("Source pallet is empty.")
+            raise HTTPException(status_code=400, detail="Source pallet is empty.")
             
         items_in_wh = r.json().get("data", [])
         item_code = items_in_wh[0]["item_code"]
         actual_qty = float(items_in_wh[0].get("actual_qty", 0.0))
         
         if data.repack_qty > actual_qty:
-            raise Exception(f"Cannot repack {data.repack_qty}. Only {actual_qty} available in source pallet.")
+            raise HTTPException(status_code=400, detail=f"Cannot repack {data.repack_qty}. Only {actual_qty} available in source pallet.")
             
         # 1. Perform Material Issue for the quantity taken out
         payload = {
@@ -340,6 +363,8 @@ def api_wms_repack(data: WmsRepackSchema):
             pass
                     
         return {"message": "Success", "stock_entry": se["name"]}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -353,10 +378,10 @@ def api_wms_merge(data: WmsMergeSchema):
         dest_wh = resolve_warehouse_from_rfid(data.pallet_b)
         
         if data.expected_source and src_wh != data.expected_source:
-            raise Exception(f"Scanned source '{src_wh}' does not match expected '{data.expected_source}'")
+            raise HTTPException(status_code=400, detail=f"Scanned source '{src_wh}' does not match expected '{data.expected_source}'")
             
         if data.expected_target and dest_wh != data.expected_target:
-            raise Exception(f"Scanned target '{dest_wh}' does not match expected '{data.expected_target}'")
+            raise HTTPException(status_code=400, detail=f"Scanned target '{dest_wh}' does not match expected '{data.expected_target}'")
         
         # Determine quantity from source warehouse
         actual_qty = 1.0
@@ -389,6 +414,8 @@ def api_wms_merge(data: WmsMergeSchema):
             pass
             
         return {"message": "Success", "stock_entry": se["name"]}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -466,6 +493,8 @@ def api_wms_find(pallet_id: str):
             "weight": weight_str,
             "status": status
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -594,6 +623,8 @@ def api_wms_marked_for_dispatch():
                 })
                 
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -605,10 +636,10 @@ def api_wms_dispatch(data: WmsDispatchSchema):
         
         warehouse_tag = resolve_warehouse_from_rfid(data.pallet_rfid)
         if not exists("Warehouse", warehouse_tag):
-            raise Exception("Invalid Location/Bin RFID. Please scan a valid bin/pallet tag first.")
+            raise HTTPException(status_code=400, detail="Invalid Location/Bin RFID. Please scan a valid bin/pallet tag first.")
             
         if data.expected_location and warehouse_tag != data.expected_location:
-            raise Exception(f"Scanned location '{warehouse_tag}' does not match the expected task location '{data.expected_location}'.")
+            raise HTTPException(status_code=400, detail=f"Scanned location '{warehouse_tag}' does not match the expected task location '{data.expected_location}'.")
             
         # Item RFID check removed for pallet-level dispatch.
         
@@ -624,7 +655,7 @@ def api_wms_dispatch(data: WmsDispatchSchema):
         )
         
         if r_bin.status_code != 200 or not r_bin.json().get("data"):
-            raise Exception(f"No items found in location {warehouse_tag} with quantity > 0.")
+            raise HTTPException(status_code=400, detail=f"No items found in location {warehouse_tag} with quantity > 0.")
             
         bins = r_bin.json().get("data")
         
@@ -693,6 +724,8 @@ def api_wms_dispatch(data: WmsDispatchSchema):
             pass
                 
         return {"message": "Success", "stock_entry": se["name"]}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -771,6 +804,8 @@ def api_wms_repack_lookup(id: str):
             "qty": 0.0,
             "uom": "Nos"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -782,6 +817,8 @@ def api_wms_split(data: WmsSplitSchema):
         
         perform_stock_transfer(data.item_code, data.qty, source_bin, target_bin)
         return {"message": "Success"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -792,12 +829,100 @@ def api_wms_stock_count(data: WmsStockCountSchema):
         company_abbr = get_company_abbr(company)
         
         target_warehouse = data.warehouse
+        is_group = False
         if target_warehouse:
             target_warehouse = resolve_warehouse_from_rfid(target_warehouse)
+            try:
+                r_wh = requests.get(f"{ERP_URL}/api/resource/Warehouse/{target_warehouse}", headers=HEADERS)
+                if r_wh.status_code == 200:
+                    is_group = r_wh.json().get("data", {}).get("is_group", 0) == 1
+            except Exception:
+                pass
+                
+        if is_group:
+            # Pallet-level reconciliation for Group Warehouses (Bins)
+            expected_pallets = []
+            try:
+                r_children = requests.get(
+                    f"{ERP_URL}/api/resource/Warehouse",
+                    headers=HEADERS,
+                    params={"filters": json.dumps([["parent_warehouse", "=", target_warehouse]]), "fields": '["name"]', "limit_page_length": 500}
+                )
+                if r_children.status_code == 200:
+                    expected_pallets = [w["name"] for w in r_children.json().get("data", [])]
+            except Exception:
+                pass
+                
+            scanned_pallets = set()
+            for tag in data.scanned_tags:
+                try:
+                    wh = resolve_warehouse_from_rfid(tag)
+                    if exists("Warehouse", wh):
+                        # Check if it's a Pallet (is_group == 0) and not a Bin (is_group == 1)
+                        r_chk = requests.get(f"{ERP_URL}/api/resource/Warehouse/{wh}", headers=HEADERS)
+                        if r_chk.status_code == 200:
+                            if not (r_chk.json().get("data", {}).get("is_group", 0) == 1):
+                                scanned_pallets.add(wh)
+                except Exception:
+                    pass
+                    
+            discrepancies = []
+            matched = []
+            
+            for ep in expected_pallets:
+                if ep in scanned_pallets:
+                    matched.append(ep.replace(f' - {company_abbr}', ''))
+                else:
+                    discrepancies.append(f"{ep.replace(f' - {company_abbr}', '')} (Missing)")
+                    
+            for sp in scanned_pallets:
+                if sp not in expected_pallets and sp and sp != target_warehouse:
+                    discrepancies.append(f"{sp.replace(f' - {company_abbr}', '')} (Unexpected)")
+                    
+            detail_msg = ""
+            if matched:
+                detail_msg += f"Matched: {', '.join(matched)}. "
+            if discrepancies:
+                detail_msg += f"Discrepancies: {', '.join(discrepancies)}"
+            else:
+                detail_msg += "All pallets matched successfully."
+                    
+            try:
+                if discrepancies:
+                    log_wms_activity(
+                        activity_type="Stock Discrepancy",
+                        operator="System",
+                        target_location=target_warehouse,
+                        details=detail_msg.strip()
+                    )
+                else:
+                    log_wms_activity(
+                        activity_type="Stock Count",
+                        operator="System",
+                        target_location=target_warehouse,
+                        details=detail_msg.strip()
+                    )
+            except Exception as e:
+                print(f"Failed to log pallet discrepancy: {e}")
+                
+            return {"message": "Success", "details": "Pallet count logged"}
             
         items_payload = []
         
         if target_warehouse:
+            target_warehouses = [target_warehouse]
+            try:
+                r_children = requests.get(
+                    f"{ERP_URL}/api/resource/Warehouse",
+                    headers=HEADERS,
+                    params={"filters": json.dumps([["parent_warehouse", "=", target_warehouse]]), "fields": '["name"]', "limit_page_length": 100}
+                )
+                if r_children.status_code == 200:
+                    for w in r_children.json().get("data", []):
+                        target_warehouses.append(w["name"])
+            except Exception:
+                pass
+
             # 1. Fetch expected items in this warehouse (supporting Serial Number and Bin structures)
             expected_items = []
             
@@ -806,7 +931,7 @@ def api_wms_stock_count(data: WmsStockCountSchema):
                 sn_url = f"{ERP_URL}/api/resource/Serial No"
                 sn_params = {
                     "fields": '["name", "item_code", "item_name", "custom_rfid_tag"]',
-                    "filters": json.dumps([["warehouse", "=", target_warehouse], ["status", "=", "Active"]]),
+                    "filters": json.dumps([["warehouse", "in", target_warehouses], ["status", "=", "Active"]]),
                     "limit_page_length": 500
                 }
                 r_sn = requests.get(sn_url, headers=HEADERS, params=sn_params)
@@ -828,7 +953,7 @@ def api_wms_stock_count(data: WmsStockCountSchema):
                     bin_url = f"{ERP_URL}/api/resource/Bin"
                     bin_params = {
                         "fields": '["item_code", "actual_qty"]',
-                        "filters": json.dumps([["warehouse", "=", target_warehouse], ["actual_qty", ">", 0]]),
+                        "filters": json.dumps([["warehouse", "in", target_warehouses], ["actual_qty", ">", 0]]),
                         "limit_page_length": 500
                     }
                     r_bin = requests.get(bin_url, headers=HEADERS, params=bin_params)
@@ -854,24 +979,34 @@ def api_wms_stock_count(data: WmsStockCountSchema):
                     pass
             
             # Map scanned tags to item/qty
-            scanned_tags_set = set(data.scanned_tags)
-            
-            # Reconcile expected items: scanned items get their count (or 1.0), missing ones get 0.0
-            reconciled_counts = {} # item_code -> total_qty
+            reconciled_counts = {}
             item_uom_map = {}
             item_rate_map = {}
-            
+            for tag in data.scanned_tags:
+                code = resolve_item_from_rfid(tag)
+                if code:
+                    reconciled_counts[code] = reconciled_counts.get(code, 0.0) + 1.0
+                    
+            # Also include expected items that were NOT scanned (qty = 0)
             for item in expected_items:
                 code = item["item_code"]
                 item_uom_map[code] = item["uom"]
                 item_rate_map[code] = item["val_rate"]
-                
-                is_scanned = item["rfid_tag"] in scanned_tags_set
-                # Accumulate quantity
-                if is_scanned:
-                    reconciled_counts[code] = reconciled_counts.get(code, 0.0) + 1.0
-                else:
-                    reconciled_counts[code] = reconciled_counts.get(code, 0.0)
+                if code not in reconciled_counts:
+                    reconciled_counts[code] = 0.0
+                    
+            # Ensure we have UOM and Rate for unexpected scanned items
+            for code in reconciled_counts.keys():
+                if code not in item_uom_map:
+                    try:
+                        r_item = requests.get(f"{ERP_URL}/api/resource/Item/{code}", headers=HEADERS)
+                        if r_item.status_code == 200:
+                            item_data = r_item.json().get("data", {})
+                            item_uom_map[code] = item_data.get("stock_uom") or "Nos"
+                            item_rate_map[code] = item_data.get("valuation_rate") or item_data.get("standard_rate") or 1.0
+                    except Exception:
+                        item_uom_map[code] = "Nos"
+                        item_rate_map[code] = 1.0
                     
             for item_code, qty in reconciled_counts.items():
                 items_payload.append({
@@ -912,17 +1047,7 @@ def api_wms_stock_count(data: WmsStockCountSchema):
         if not items_payload:
             return {"message": "No items to reconcile"}
             
-        payload = {
-            "doctype": "Stock Reconciliation",
-            "company": company,
-            "purpose": "Stock Reconciliation",
-            "items": items_payload
-        }
-        
-        sr = erp_post("Stock Reconciliation", payload)
-        submit_doc("Stock Reconciliation", sr["name"])
-        
-        # Log activity in ERPNext
+        # Log activity in ERPNext FIRST
         try:
             if target_warehouse:
                 discrepancies = []
@@ -947,8 +1072,23 @@ def api_wms_stock_count(data: WmsStockCountSchema):
                     )
         except Exception:
             pass
-            
-        return {"message": "Success", "stock_reconciliation": sr["name"]}
+
+        payload = {
+            "doctype": "Stock Reconciliation",
+            "company": company,
+            "purpose": "Stock Reconciliation",
+            "items": items_payload
+        }
+        
+        try:
+            sr = erp_post("Stock Reconciliation", payload)
+            submit_doc("Stock Reconciliation", sr["name"])
+            return {"message": "Success", "stock_reconciliation": sr["name"]}
+        except Exception as e:
+            print(f"Warning: Stock Reconciliation failed (possibly group warehouse): {e}")
+            return {"message": "Activity logged, but Stock Reconciliation failed", "error": str(e)}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -1002,5 +1142,7 @@ def api_wms_resolve_tag_info(rfid: str):
             "name": "Unregistered Tag",
             "location": "N/A"
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

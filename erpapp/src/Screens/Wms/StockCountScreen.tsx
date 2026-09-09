@@ -78,17 +78,38 @@ const StockCountScreen = ({ navigation, route }: { navigation: any, route?: any 
   }, []);
 
   const handleCompleteTask = async () => {
-    if (activeTaskId) {
-      try {
+    try {
+      const scanned_tags = scanHistory.map(item => item.rfid);
+      const warehouse = activeContainer?.rfid || null;
+
+      const scResponse = await fetch('http://77.42.39.77:8000/wms/stock-count', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scanned_tags,
+          warehouse
+        })
+      });
+
+      if (!scResponse.ok) {
+         const errData = await scResponse.json().catch(() => ({}));
+         throw new Error(errData.detail || 'Failed to submit stock count');
+      }
+
+      if (activeTaskId) {
         await fetch(`http://77.42.39.77:8000/wms/tasks/${activeTaskId}/complete`, {
           method: 'PUT',
         });
         setActiveTaskId(null);
         fetchPendingTasks();
-        Alert.alert('Task Completed', 'The stock count task was marked as completed.');
-      } catch (e) {
-        console.error('Failed to complete task', e);
       }
+
+      Alert.alert('Success', 'The stock count was submitted successfully.');
+      setScanHistory([]);
+      setActiveContainer(null);
+    } catch (e: any) {
+      console.error('Failed to complete task', e);
+      Alert.alert('Error', e.message || 'Failed to submit stock count.');
     }
   };
 

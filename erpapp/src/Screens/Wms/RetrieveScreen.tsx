@@ -95,7 +95,7 @@ const RetrieveScreen = ({ navigation, route }: { navigation: any; route: any }) 
         throw new Error(errJson.detail || 'API request failed');
       }
     } catch (err: any) {
-      Alert.alert('Retrieve Failed', 'Operation failed. Please try again.');
+      Alert.alert('Retrieve Failed', err.message || 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }

@@ -113,7 +113,7 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
         throw new Error(errJson.detail || 'API request failed');
       }
     } catch (err: any) {
-      Alert.alert('Assignment Failed', 'Operation failed. Please try again.');
+      Alert.alert('Assignment Failed', err.message || 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }

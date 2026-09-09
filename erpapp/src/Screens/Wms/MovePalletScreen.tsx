@@ -85,7 +85,7 @@ const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any 
       }
     };
     fetchWarehouses();
-    
+
     if (route?.params?.initialSourcePallet) {
       fetchPalletForBin(route.params.initialSourcePallet);
     }
@@ -179,7 +179,7 @@ const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any 
         setTargetBin('');
         setAssignedPalletName('');
         setAssignedPalletRfid('');
-        
+
         if (activeTaskId) {
           try {
             await fetch(`http://77.42.39.77:8000/wms/tasks/${activeTaskId}/complete`, {
@@ -392,8 +392,8 @@ const MovePalletScreen = ({ navigation, route }: { navigation: any, route?: any 
             <ActivityIndicator color="#3fbf75" style={{ marginVertical: 10 }} />
           ) : pendingTasks.length > 0 ? (
             pendingTasks.map((task) => (
-              <TouchableOpacity 
-                key={task.name} 
+              <TouchableOpacity
+                key={task.name}
                 style={[
                   styles.taskItem,
                   activeTaskId === task.name && { borderColor: '#3fbf75', borderWidth: 2 }
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
     color: '#9db0bd',
   },
   detailVal: {
-    fontFamily: 'Archivo', 
+    fontFamily: 'Archivo',
     fontSize: wp(3.6),
     fontWeight: '700',
     color: '#ecf1f4',

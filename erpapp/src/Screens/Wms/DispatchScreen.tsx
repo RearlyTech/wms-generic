@@ -104,7 +104,7 @@ const DispatchScreen = ({ navigation, route }: { navigation: any, route?: any })
         Alert.alert('ERPNext Error', errMsg);
       }
     } catch (err: any) {
-      Alert.alert('Dispatch Failed', 'Operation failed. Please try again.');
+      Alert.alert('Dispatch Failed', err.message || 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }

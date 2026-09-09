@@ -154,7 +154,7 @@ const RepackScreen = ({ navigation }: { navigation: any }) => {
         throw new Error(errJson.detail || 'API request failed');
       }
     } catch (err: any) {
-      Alert.alert('Repack Failed', 'Operation failed. Please try again.');
+      Alert.alert('Repack Failed', err.message || 'Operation failed. Please try again.');
     } finally {
       setLoading(false);
     }
