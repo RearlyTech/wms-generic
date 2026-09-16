@@ -1146,3 +1146,136 @@ def api_wms_resolve_tag_info(rfid: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+class StockInSchema(BaseModel):
+    rfid_tag: str
+    weight: float = 1.0
+    item_code: str = "SHRIMP-RAW"
+
+class StockOutSchema(BaseModel):
+    rfid_tag: str
+
+@router.post("/packing/stock-in")
+def api_packing_stock_in(data: StockInSchema):
+    try:
+        company = resolve_latest_doc("Company") or "Rearly Tech"
+        company_abbr = get_company_abbr(company)
+        
+        # 1. Look up the existing Batch (created by the panel)
+        batch_res = requests.get(f"{ERP_URL}/api/resource/Batch/{data.rfid_tag}", headers=HEADERS)
+        if batch_res.status_code != 200:
+            raise HTTPException(status_code=404, detail=f"Carton with RFID {data.rfid_tag} not found! Please ensure it was created in the panel.")
+            
+        batch_data = batch_res.json().get("data", {})
+        item_code = batch_data.get("item") or data.item_code
+        
+        # Try to get weight from the batch if the panel saved it there, otherwise default to 1.0
+        qty = batch_data.get("weight") or batch_data.get("net_weight") or 1.0
+        
+        batch_no = data.rfid_tag
+        
+        # 2. Format warehouse name
+        target_warehouse = f"Temporary Cold Storage - {company_abbr}"
+        
+        now = datetime.datetime.now()
+        
+        # 3. Create Stock Entry (Material Receipt)
+        se_payload = {
+            "doctype": "Stock Entry",
+            "stock_entry_type": "Material Receipt",
+            "purpose": "Material Receipt",
+            "company": company,
+            "posting_date": now.strftime("%Y-%m-%d"),
+            "posting_time": now.strftime("%H:%M:%S"),
+            "set_posting_time": 1,
+            "items": [
+                {
+                    "item_code": item_code,
+                    "qty": qty,
+                    "t_warehouse": target_warehouse,
+                    "batch_no": batch_no,
+                    "uom": "Kg",
+                    "allow_zero_valuation_rate": 1,
+                    "use_serial_batch_fields": 1
+                }
+            ]
+        }
+        
+        # Ensure UOM is accurate if possible
+        try:
+            r_item = requests.get(f"{ERP_URL}/api/resource/Item/{data.item_code}", headers=HEADERS)
+            if r_item.status_code == 200:
+                se_payload["items"][0]["uom"] = r_item.json().get("data", {}).get("stock_uom") or "Kg"
+        except Exception:
+            pass
+            
+        se = erp_post("Stock Entry", se_payload)
+        submit_doc("Stock Entry", se["name"])
+        
+        return {"message": "Success", "batch_no": batch_no, "stock_entry": se["name"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/packing/stock-out")
+def api_packing_stock_out(data: StockOutSchema):
+    try:
+        company = resolve_latest_doc("Company") or "Rearly Tech"
+        company_abbr = get_company_abbr(company)
+        
+        # 1. Look up the Batch
+        batch_res = requests.get(f"{ERP_URL}/api/resource/Batch/{data.rfid_tag}", headers=HEADERS)
+        if batch_res.status_code != 200:
+            raise HTTPException(status_code=404, detail=f"Carton with RFID {data.rfid_tag} not found!")
+            
+        batch_data = batch_res.json().get("data", {})
+        item_code = batch_data.get("item")
+        
+        source_warehouse = f"Temporary Cold Storage - {company_abbr}"
+        target_warehouse = f"Cold Storage Staging - {company_abbr}"
+        
+        # Use the weight directly from the Batch document (same as Stock In)
+        qty = batch_data.get("weight") or batch_data.get("net_weight") or 1.0
+        
+        now = datetime.datetime.now()
+        
+        # 3. Create Stock Entry (Material Transfer)
+        se_payload = {
+            "doctype": "Stock Entry",
+            "stock_entry_type": "Material Transfer",
+            "purpose": "Material Transfer",
+            "company": company,
+            "posting_date": now.strftime("%Y-%m-%d"),
+            "posting_time": now.strftime("%H:%M:%S"),
+            "set_posting_time": 1,
+            "items": [
+                {
+                    "item_code": item_code,
+                    "qty": qty,
+                    "s_warehouse": source_warehouse,
+                    "t_warehouse": target_warehouse,
+                    "batch_no": data.rfid_tag,
+                    "uom": "Kg",
+                    "allow_zero_valuation_rate": 1,
+                    "use_serial_batch_fields": 1
+                }
+            ]
+        }
+        
+        # Ensure UOM is accurate if possible
+        try:
+            r_item = requests.get(f"{ERP_URL}/api/resource/Item/{item_code}", headers=HEADERS)
+            if r_item.status_code == 200:
+                se_payload["items"][0]["uom"] = r_item.json().get("data", {}).get("stock_uom") or "Kg"
+        except Exception:
+            pass
+            
+        se = erp_post("Stock Entry", se_payload)
+        submit_doc("Stock Entry", se["name"])
+        
+        return {"message": "Success", "batch_no": data.rfid_tag, "stock_entry": se["name"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
