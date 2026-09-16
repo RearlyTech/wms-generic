@@ -1240,7 +1240,7 @@ def api_packing_stock_out(data: StockOutSchema):
         item_code = batch_data.get("item")
         
         source_warehouse = f"Temporary Cold Storage - {company_abbr}"
-        target_warehouse = f"Cold Storage Staging - {company_abbr}"
+        target_warehouse = f"In-Transit - {company_abbr}"
         
         # Use the weight directly from the Batch document (same as Stock In)
         qty = batch_data.get("weight") or batch_data.get("net_weight") or 1.0
@@ -1359,7 +1359,7 @@ def api_packing_stock_out_bulk(data: StockOutBulkSchema):
         company_abbr = get_company_abbr(company)
         
         source_warehouse = f"Temporary Cold Storage - {company_abbr}"
-        target_warehouse = f"Cold Storage Staging - {company_abbr}"
+        target_warehouse = f"In-Transit - {company_abbr}"
         now = datetime.datetime.now()
         
         items = []
@@ -1408,5 +1408,111 @@ def api_packing_stock_out_bulk(data: StockOutBulkSchema):
         return {"message": "Success", "stock_entry": se["name"]}
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/wms/in-transit")
+def api_wms_in_transit():
+    try:
+        company = resolve_latest_doc("Company") or "Rearly Tech"
+        company_abbr = get_company_abbr(company)
+        transit_wh = f"In-Transit - {company_abbr}"
+        
+        # We can query Stock Ledger Entry for positive balance in In-Transit
+        r = requests.get(
+            f"{ERP_URL}/api/resource/Stock Ledger Entry",
+            headers=HEADERS,
+            params={
+                "filters": json.dumps([["warehouse", "=", transit_wh], ["is_cancelled", "=", 0], ["batch_no", "is", "set"]]),
+                "fields": '["batch_no", "item_code", "actual_qty"]',
+                "limit_page_length": 5000
+            }
+        )
+        if r.status_code != 200:
+            return []
+            
+        sles = r.json().get("data", [])
+        
+        # Calculate balance per batch
+        balances = {}
+        for sle in sles:
+            batch = sle["batch_no"]
+            if batch not in balances:
+                balances[batch] = {"qty": 0, "item_code": sle["item_code"]}
+            balances[batch]["qty"] += float(sle.get("actual_qty", 0))
+            
+        in_transit_cartons = []
+        for batch, data in balances.items():
+            if data["qty"] > 0:
+                in_transit_cartons.append({
+                    "rfid": batch,
+                    "item_code": data["item_code"],
+                    "qty": data["qty"]
+                })
+                
+        return in_transit_cartons
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class WmsStockInSchema(BaseModel):
+    rfid_tags: List[str]
+
+@router.post("/wms/stock-in")
+def api_wms_stock_in(data: WmsStockInSchema):
+    try:
+        if not data.rfid_tags:
+            raise HTTPException(status_code=400, detail="No tags provided.")
+            
+        company = resolve_latest_doc("Company") or "Rearly Tech"
+        company_abbr = get_company_abbr(company)
+        
+        source_warehouse = f"In-Transit - {company_abbr}"
+        target_warehouse = f"Cold Storage Staging - {company_abbr}"
+        now = datetime.datetime.now()
+        
+        items = []
+        for rfid in data.rfid_tags:
+            batch_res = requests.get(f"{ERP_URL}/api/resource/Batch/{rfid}", headers=HEADERS)
+            if batch_res.status_code != 200:
+                raise HTTPException(status_code=404, detail=f"Carton with RFID {rfid} not found!")
+                
+            batch_data = batch_res.json().get("data", {})
+            item_code = batch_data.get("item")
+            qty = batch_data.get("weight") or batch_data.get("net_weight") or 1.0
+            
+            uom = "Kg"
+            try:
+                r_item = requests.get(f"{ERP_URL}/api/resource/Item/{item_code}", headers=HEADERS)
+                if r_item.status_code == 200:
+                    uom = r_item.json().get("data", {}).get("stock_uom") or "Kg"
+            except Exception:
+                pass
+                
+            items.append({
+                "item_code": item_code,
+                "qty": qty,
+                "s_warehouse": source_warehouse,
+                "t_warehouse": target_warehouse,
+                "batch_no": rfid,
+                "uom": uom,
+                "allow_zero_valuation_rate": 1,
+                "use_serial_batch_fields": 1
+            })
+            
+        se_payload = {
+            "doctype": "Stock Entry",
+            "stock_entry_type": "Material Transfer",
+            "purpose": "Material Transfer",
+            "company": company,
+            "posting_date": now.strftime("%Y-%m-%d"),
+            "posting_time": now.strftime("%H:%M:%S"),
+            "set_posting_time": 1,
+            "items": items
+        }
+        
+        se = erp_post("Stock Entry", se_payload)
+        submit_doc("Stock Entry", se["name"])
+        
+        return {"message": "Success", "stock_entry": se["name"]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
