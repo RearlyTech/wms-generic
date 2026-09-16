@@ -1418,29 +1418,39 @@ def api_wms_in_transit():
         company_abbr = get_company_abbr(company)
         transit_wh = f"In-Transit - {company_abbr}"
         
-        # We can query Stock Ledger Entry for positive balance in In-Transit
-        r = requests.get(
-            f"{ERP_URL}/api/resource/Stock Ledger Entry",
+        # In ERPNext v15, batch data is stored in 'Serial and Batch Entry' linked to a Bundle.
+        # We must use get_list to join and fetch child table fields without hitting permission errors.
+        r = requests.post(
+            f"{ERP_URL}/api/method/frappe.client.get_list",
             headers=HEADERS,
-            params={
-                "filters": json.dumps([["warehouse", "=", transit_wh], ["is_cancelled", "=", 0], ["batch_no", "is", "set"]]),
-                "fields": '["batch_no", "item_code", "actual_qty"]',
+            json={
+                "doctype": "Serial and Batch Bundle",
+                "filters": {"warehouse": transit_wh, "docstatus": 1},
+                "fields": ["name", "type_of_transaction", "item_code", "`tabSerial and Batch Entry`.batch_no", "`tabSerial and Batch Entry`.qty"],
                 "limit_page_length": 5000
             }
         )
         if r.status_code != 200:
+            print("ERROR in /wms/in-transit:", r.text)
             return []
             
-        sles = r.json().get("data", [])
+        entries = r.json().get("message", [])
         
         # Calculate balance per batch
         balances = {}
-        for sle in sles:
-            batch = sle["batch_no"]
-            if batch not in balances:
-                balances[batch] = {"qty": 0, "item_code": sle["item_code"]}
-            balances[batch]["qty"] += float(sle.get("actual_qty", 0))
+        for entry in entries:
+            batch = entry.get("batch_no")
+            if not batch: continue
             
+            if batch not in balances:
+                balances[batch] = {"qty": 0, "item_code": entry.get("item_code", "Unknown Item")}
+            
+            qty = float(entry.get("qty") or 0)
+            if entry.get("type_of_transaction") == "Outward":
+                balances[batch]["qty"] -= qty
+            else:
+                balances[batch]["qty"] += qty
+                
         in_transit_cartons = []
         for batch, data in balances.items():
             if data["qty"] > 0:
