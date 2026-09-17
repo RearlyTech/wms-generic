@@ -1467,6 +1467,68 @@ def api_wms_in_transit():
 class WmsStockInSchema(BaseModel):
     rfid_tags: List[str]
 
+class WmsStockInSingleSchema(BaseModel):
+    rfid_tag: str
+
+@router.post("/wms/stock-in-single")
+def api_wms_stock_in_single(data: WmsStockInSingleSchema):
+    try:
+        if not data.rfid_tag:
+            raise HTTPException(status_code=400, detail="No tag provided.")
+            
+        company = resolve_latest_doc("Company") or "Rearly Tech"
+        company_abbr = get_company_abbr(company)
+        
+        source_warehouse = f"In-Transit - {company_abbr}"
+        target_warehouse = f"Cold Storage Staging - {company_abbr}"
+        now = datetime.datetime.now()
+        
+        rfid = data.rfid_tag
+        batch_res = requests.get(f"{ERP_URL}/api/resource/Batch/{rfid}", headers=HEADERS)
+        if batch_res.status_code != 200:
+            raise HTTPException(status_code=404, detail=f"Carton with RFID {rfid} not found!")
+            
+        batch_data = batch_res.json().get("data", {})
+        item_code = batch_data.get("item")
+        qty = batch_data.get("weight") or batch_data.get("net_weight") or 1.0
+        
+        uom = "Kg"
+        try:
+            r_item = requests.get(f"{ERP_URL}/api/resource/Item/{item_code}", headers=HEADERS)
+            if r_item.status_code == 200:
+                uom = r_item.json().get("data", {}).get("stock_uom") or "Kg"
+        except Exception:
+            pass
+            
+        items = [{
+            "item_code": item_code,
+            "qty": qty,
+            "s_warehouse": source_warehouse,
+            "t_warehouse": target_warehouse,
+            "batch_no": rfid,
+            "uom": uom,
+            "allow_zero_valuation_rate": 1,
+            "use_serial_batch_fields": 1
+        }]
+            
+        se_payload = {
+            "doctype": "Stock Entry",
+            "stock_entry_type": "Material Transfer",
+            "purpose": "Material Transfer",
+            "company": company,
+            "posting_date": now.strftime("%Y-%m-%d"),
+            "posting_time": now.strftime("%H:%M:%S"),
+            "set_posting_time": 1,
+            "items": items
+        }
+        
+        se = erp_post("Stock Entry", se_payload)
+        submit_doc("Stock Entry", se["name"])
+        
+        return {"message": "Success", "stock_entry": se["name"]}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/wms/stock-in")
 def api_wms_stock_in(data: WmsStockInSchema):
     try:
