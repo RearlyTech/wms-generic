@@ -1411,6 +1411,86 @@ def api_packing_stock_out_bulk(data: StockOutBulkSchema):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/wms/stores")
+def api_wms_stores():
+    try:
+        company = resolve_latest_doc("Company") or "Rearly Tech"
+        company_abbr = get_company_abbr(company)
+        stores_wh = f"Stores - {company_abbr}"
+        
+        # In ERPNext v15, batch data is stored in 'Serial and Batch Entry' linked to a Bundle.
+        # We must use get_list to join and fetch child table fields without hitting permission errors.
+        r = requests.post(
+            f"{ERP_URL}/api/method/frappe.client.get_list",
+            headers=HEADERS,
+            json={
+                "doctype": "Serial and Batch Bundle",
+                "filters": {"warehouse": stores_wh, "docstatus": 1},
+                "fields": ["name", "type_of_transaction", "item_code", "`tabSerial and Batch Entry`.batch_no", "`tabSerial and Batch Entry`.qty"],
+                "limit_page_length": 5000
+            }
+        )
+        if r.status_code != 200:
+            print("ERROR in /wms/stores:", r.text)
+            return []
+            
+        entries = r.json().get("message", [])
+        
+        # Fetch item names for all unique item codes
+        item_codes = list(set(e.get("item_code") for e in entries if e.get("item_code")))
+        item_names = {}
+        if item_codes:
+            r_items = requests.post(
+                f"{ERP_URL}/api/method/frappe.client.get_list",
+                headers=HEADERS,
+                json={
+                    "doctype": "Item",
+                    "filters": [["name", "in", item_codes]],
+                    "fields": ["name", "item_name"],
+                    "limit_page_length": len(item_codes)
+                }
+            )
+            if r_items.status_code == 200:
+                for it in r_items.json().get("message", []):
+                    item_names[it["name"]] = it.get("item_name") or it["name"]
+        
+        # Calculate balance per batch
+        balances = {}
+        for entry in entries:
+            batch = entry.get("batch_no")
+            if not batch: continue
+            
+            if batch not in balances:
+                i_code = entry.get("item_code", "Unknown Item")
+                balances[batch] = {
+                    "qty": 0, 
+                    "item_code": i_code,
+                    "item_name": item_names.get(i_code, i_code)
+                }
+            
+            qty = float(entry.get("qty") or 0)
+            if entry.get("type_of_transaction") == "Outward":
+                balances[batch]["qty"] -= qty
+            else:
+                balances[batch]["qty"] += qty
+                
+        stores_cartons = []
+        for batch, data in balances.items():
+            if data["qty"] > 0:
+                stores_cartons.append({
+                    "batch_id": batch,
+                    "qty": round(data["qty"], 2),
+                    "item_code": data["item_code"],
+                    "item_name": data["item_name"]
+                })
+        
+        return sorted(stores_cartons, key=lambda x: x["batch_id"])
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("ERROR in /wms/stores:", e)
+        return []
+
 @router.get("/wms/in-transit")
 def api_wms_in_transit():
     try:
