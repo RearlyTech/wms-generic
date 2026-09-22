@@ -1476,7 +1476,8 @@ def api_wms_stores():
                 
         stores_cartons = []
         for batch, data in balances.items():
-            if data["qty"] > 0:
+            # Use a threshold of 0.001 to ignore floating point dust
+            if data["qty"] > 0.001:
                 stores_cartons.append({
                     "batch_id": batch,
                     "qty": round(data["qty"], 2),
@@ -1533,16 +1534,46 @@ def api_wms_in_transit():
                 
         in_transit_cartons = []
         for batch, data in balances.items():
-            if data["qty"] > 0:
+            # Use a threshold of 0.001 to ignore floating point dust 
+            # and prevent fully received cartons from staying in the list
+            if data["qty"] > 0.001:
                 in_transit_cartons.append({
                     "rfid": batch,
                     "item_code": data["item_code"],
-                    "qty": data["qty"]
+                    "qty": round(data["qty"], 3)
                 })
                 
         return in_transit_cartons
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+def get_all_balances(warehouse: str) -> dict:
+    balances = {}
+    try:
+        r = requests.post(
+            f"{ERP_URL}/api/method/frappe.client.get_list",
+            headers=HEADERS,
+            json={
+                "doctype": "Serial and Batch Bundle",
+                "filters": {"warehouse": warehouse, "docstatus": 1},
+                "fields": ["type_of_transaction", "`tabSerial and Batch Entry`.batch_no", "`tabSerial and Batch Entry`.qty"],
+                "limit_page_length": 5000
+            }
+        )
+        if r.status_code == 200:
+            for e in r.json().get("message", []):
+                b = e.get("batch_no")
+                if not b: continue
+                q = float(e.get("qty") or 0)
+                if b not in balances:
+                    balances[b] = 0.0
+                if e.get("type_of_transaction") == "Outward":
+                    balances[b] -= q
+                else:
+                    balances[b] += q
+    except Exception as e:
+        print(f"Error fetching balances for {warehouse}: {e}")
+    return balances
 
 class WmsStockInSchema(BaseModel):
     rfid_tags: List[str]
@@ -1570,7 +1601,10 @@ def api_wms_stock_in_single(data: WmsStockInSingleSchema):
             
         batch_data = batch_res.json().get("data", {})
         item_code = batch_data.get("item")
-        qty = batch_data.get("weight") or batch_data.get("net_weight") or 1.0
+        
+        all_balances = get_all_balances(source_warehouse)
+        actual_bal = all_balances.get(rfid, 0.0)
+        qty = actual_bal if actual_bal > 0.001 else (batch_data.get("weight") or batch_data.get("net_weight") or 1.0)
         
         uom = "Kg"
         try:
@@ -1622,6 +1656,8 @@ def api_wms_stock_in(data: WmsStockInSchema):
         target_warehouse = f"Cold Storage Staging - {company_abbr}"
         now = datetime.datetime.now()
         
+        all_balances = get_all_balances(source_warehouse)
+        
         items = []
         for rfid in data.rfid_tags:
             batch_res = requests.get(f"{ERP_URL}/api/resource/Batch/{rfid}", headers=HEADERS)
@@ -1630,7 +1666,9 @@ def api_wms_stock_in(data: WmsStockInSchema):
                 
             batch_data = batch_res.json().get("data", {})
             item_code = batch_data.get("item")
-            qty = batch_data.get("weight") or batch_data.get("net_weight") or 1.0
+            
+            actual_bal = all_balances.get(rfid, 0.0)
+            qty = actual_bal if actual_bal > 0.001 else (batch_data.get("weight") or batch_data.get("net_weight") or 1.0)
             
             uom = "Kg"
             try:
