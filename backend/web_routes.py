@@ -1399,7 +1399,11 @@ def get_warehouse_layout():
         result = {}
         for root in top_warehouses:
             root_children = children_map.get(root["name"], [])
-            result[root["name"]] = [build_tree(child["name"]) for child in root_children]
+            is_group = root.get("is_group")
+            if not root_children and is_group in (0, "0", False, None):
+                result[root["name"]] = [build_tree(root["name"])]
+            else:
+                result[root["name"]] = [build_tree(child["name"]) for child in root_children]
             
         layout_cache["data"] = result
         layout_cache["last_fetched"] = time.time()
