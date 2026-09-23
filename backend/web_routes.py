@@ -1149,7 +1149,7 @@ metrics_cache = {
 @router.get("/wms/dashboard-metrics")
 def get_dashboard_metrics():
     global metrics_cache
-    if time.time() - metrics_cache["last_fetched"] < 60:
+    if time.time() - metrics_cache["last_fetched"] < 3:
         return metrics_cache["data"]
 
     from datetime import datetime, timedelta
@@ -1328,7 +1328,7 @@ layout_cache = {
 @router.get("/wms/warehouse-layout")
 def get_warehouse_layout():
     global layout_cache
-    if time.time() - layout_cache["last_fetched"] < 60:
+    if time.time() - layout_cache["last_fetched"] < 3:
         return layout_cache["data"]
 
     try:

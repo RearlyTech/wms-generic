@@ -2,18 +2,26 @@
 
 import { useState, useMemo } from "react";
 import { WarehouseNode, Item } from "@/lib/warehouse-data";
-import { ArrowLeft, Search, Loader2, MapPin, Package, ChevronRight } from "lucide-react";
+import { ArrowLeft, Search, Loader2, MapPin, Package, ChevronRight, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";interface Props {
     initialWarehouses: {id: string, name: string}[];
     initialRacksMap: Record<string, WarehouseNode[]>;
     backendUrl: string;
+    onRefresh: () => Promise<void>;
 }
 
-export default function WarehouseClient({ initialWarehouses, initialRacksMap, backendUrl }: Props) {
+export default function WarehouseClient({ initialWarehouses, initialRacksMap, backendUrl, onRefresh }: Props) {
     const router = useRouter();
     const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null);
     const [markingBatch, setMarkingBatch] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefreshClick = async () => {
+        setIsRefreshing(true);
+        await onRefresh();
+        setIsRefreshing(false);
+    };
 
     // Sliding Window State
     // viewContext stores the path of nodes we have drilled into.
@@ -138,6 +146,16 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                             <h1 className="text-lg font-bold text-slate-900 tracking-tight">Warehouse Locations</h1>
                         </div>
                     </div>
+                    <div className="flex items-center">
+                        <button
+                            onClick={handleRefreshClick}
+                            disabled={isRefreshing}
+                            className="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors border border-slate-300 text-sm shadow-sm flex items-center gap-2 disabled:opacity-50"
+                        >
+                            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            Refresh
+                        </button>
+                    </div>
                 </header>
 
                 <main className="w-full max-w-6xl mt-12 mb-12 flex flex-col items-center px-4">
@@ -233,7 +251,16 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                     </div>
                 </div>
                 
-                <div className="flex items-center gap-3">                    {selectedL1 && (
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleRefreshClick}
+                        disabled={isRefreshing}
+                        className="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors border border-slate-300 text-sm shadow-sm flex items-center gap-2 disabled:opacity-50"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                        Refresh
+                    </button>
+                    {selectedL1 && (
                         <button 
                             onClick={clearSelection}
                             className="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors border border-slate-300 text-sm shadow-sm"

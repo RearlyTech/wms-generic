@@ -20,6 +20,20 @@ export default function WarehouseVisualizerPage() {
         }
     }, []);
 
+    const fetchWarehouseData = async () => {
+        const [whRes, layoutRes] = await Promise.all([
+            fetch(`${backendUrl}/wms/root-warehouses`, { mode: "cors" }),
+            fetch(`${backendUrl}/wms/warehouse-layout`, { mode: "cors" })
+        ]);
+        
+        if (!whRes.ok) throw new Error("Failed to fetch root warehouses");
+        if (!layoutRes.ok) throw new Error("Failed to fetch warehouse layout data");
+        
+        const whData = await whRes.json();
+        const layoutData = await layoutRes.json();
+        return { whData, layoutData };
+    };
+
     useEffect(() => {
         if (!backendUrl) return;
 
@@ -27,17 +41,7 @@ export default function WarehouseVisualizerPage() {
             setLoading(true);
             setError(null);
             try {
-                const [whRes, layoutRes] = await Promise.all([
-                    fetch(`${backendUrl}/wms/root-warehouses`, { mode: "cors" }),
-                    fetch(`${backendUrl}/wms/warehouse-layout`, { mode: "cors" })
-                ]);
-                
-                if (!whRes.ok) throw new Error("Failed to fetch root warehouses");
-                if (!layoutRes.ok) throw new Error("Failed to fetch warehouse layout data");
-                
-                const whData = await whRes.json();
-                const layoutData = await layoutRes.json();
-                
+                const { whData, layoutData } = await fetchWarehouseData();
                 setWarehouses(whData);
                 setRacksMap(layoutData);
             } catch (err: any) {
@@ -50,6 +54,17 @@ export default function WarehouseVisualizerPage() {
         
         fetchData();
     }, [backendUrl]);
+
+    const handleRefresh = async () => {
+        try {
+            const { whData, layoutData } = await fetchWarehouseData();
+            setWarehouses(whData);
+            setRacksMap(layoutData);
+        } catch (err: any) {
+            console.error("Error refreshing warehouse data:", err);
+            // Optionally, we could show a toast here. For now, just logging is fine.
+        }
+    };
 
     if (loading) {
         return (
@@ -83,5 +98,5 @@ export default function WarehouseVisualizerPage() {
         );
     }
 
-    return <WarehouseClient initialWarehouses={warehouses} initialRacksMap={racksMap} backendUrl={backendUrl} />;
+    return <WarehouseClient initialWarehouses={warehouses} initialRacksMap={racksMap} backendUrl={backendUrl} onRefresh={handleRefresh} />;
 }
