@@ -1183,14 +1183,15 @@ def api_packing_stock_in(data: StockInSchema):
         
         # 2. Format warehouse name
         target_warehouse = f"Temporary Cold Storage - {company_abbr}"
+        source_warehouse = f"Stores - {company_abbr}"
         
         now = datetime.datetime.now()
         
-        # 3. Create Stock Entry (Material Receipt)
+        # 3. Create Stock Entry (Material Transfer)
         se_payload = {
             "doctype": "Stock Entry",
-            "stock_entry_type": "Material Receipt",
-            "purpose": "Material Receipt",
+            "stock_entry_type": "Material Transfer",
+            "purpose": "Material Transfer",
             "company": company,
             "posting_date": now.strftime("%Y-%m-%d"),
             "posting_time": now.strftime("%H:%M:%S"),
@@ -1199,6 +1200,7 @@ def api_packing_stock_in(data: StockInSchema):
                 {
                     "item_code": item_code,
                     "qty": qty,
+                    "s_warehouse": source_warehouse,
                     "t_warehouse": target_warehouse,
                     "batch_no": batch_no,
                     "uom": "Kg",
@@ -1297,6 +1299,7 @@ def api_packing_stock_in_bulk(data: StockInBulkSchema):
         company_abbr = get_company_abbr(company)
         
         target_warehouse = f"Temporary Cold Storage - {company_abbr}"
+        source_warehouse = f"Stores - {company_abbr}"
         now = datetime.datetime.now()
         
         items = []
@@ -1322,6 +1325,7 @@ def api_packing_stock_in_bulk(data: StockInBulkSchema):
             items.append({
                 "item_code": item_code,
                 "qty": qty,
+                "s_warehouse": source_warehouse,
                 "t_warehouse": target_warehouse,
                 "batch_no": rfid,
                 "uom": uom,
@@ -1331,8 +1335,8 @@ def api_packing_stock_in_bulk(data: StockInBulkSchema):
             
         se_payload = {
             "doctype": "Stock Entry",
-            "stock_entry_type": "Material Receipt",
-            "purpose": "Material Receipt",
+            "stock_entry_type": "Material Transfer",
+            "purpose": "Material Transfer",
             "company": company,
             "posting_date": now.strftime("%Y-%m-%d"),
             "posting_time": now.strftime("%H:%M:%S"),
