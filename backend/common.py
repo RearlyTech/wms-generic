@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import fastapi
 # ERP_URL = "https://erpnext-qvg-hla.m.frappe.cloud"
 ERP_URL = "http://77.42.39.77:8080"
+TRACK_A_CONTRACT_VERSION = "2026-09-24.track-a-batch-v2"
 
 # API_KEY = "6d03b8008c856ee"
 API_KEY = "fe91c1c285be2e8"
@@ -185,10 +186,7 @@ def submit_doc(doctype: str, name: str):
         raise HTTPException(status_code=503, detail=err_msg)
 
     if r.status_code >= 400:
-        raise HTTPException(
-            status_code=r.status_code,
-            detail=f"Failed to submit {doctype} {name}: {r.text}"
-        )
+        handle_erp_response(r, f"submit {doctype} {name}")
 
     return r.json()["data"] if "data" in r.json() else r.json()
 
@@ -459,6 +457,7 @@ def resolve_warehouse_from_rfid(rfid_tag: str) -> str:
 class WmsReceiveSchema(BaseModel):
     item_rfid: str
     pallet_id: str
+    command_id: str
 
 class WmsPutAwaySchema(BaseModel):
     pallet_rfid: str
@@ -508,6 +507,9 @@ class WmsStockCountSchema(BaseModel):
     warehouse: str | None = None
 
 def resolve_item_from_rfid(rfid_tag: str) -> str:
+    batch = resolve_batch_from_rfid(rfid_tag)
+    if batch and batch.get("item"):
+        return batch["item"]
     if exists("Item", rfid_tag):
         return rfid_tag
 
@@ -552,6 +554,42 @@ def resolve_item_from_rfid(rfid_tag: str) -> str:
         return fallback
     return "Maida Flour"
 
+def resolve_batch_from_rfid(rfid_tag: str) -> dict | None:
+    """Resolve one physical carton tag to one exact ERP Batch."""
+    direct = erp_get("Batch", rfid_tag)
+    if direct.status_code == 200:
+        return direct.json().get("data")
+    try:
+        response = requests.get(
+            f"{ERP_URL}/api/resource/Batch", headers=HEADERS,
+            params={"filters": json.dumps([["custom_rfid_tag", "=", rfid_tag]]),
+                    "fields": json.dumps(["name", "item", "custom_rfid_tag",
+                        "custom_marine_trace_code", "custom_marine_source_run_id",
+                        "custom_marine_source_lot_id", "custom_marine_packing_work_id"]),
+                    "limit_page_length": 2})
+        if response.status_code != 200:
+            handle_erp_response(response, "Batch RFID lookup")
+        rows = response.json().get("data", [])
+        if len(rows) > 1:
+            raise HTTPException(status_code=409, detail="RFID tag matches more than one ERP Batch.")
+        return rows[0] if rows else None
+    except HTTPException:
+        raise
+    except requests.exceptions.RequestException as error:
+        raise HTTPException(status_code=503, detail=f"ERP Batch lookup failed: {error}")
+
+def get_batch_source_warehouse(batch_id: str, item_code: str) -> str:
+    response = requests.get(
+        f"{ERP_URL}/api/method/erpnext.stock.doctype.batch.batch.get_batch_qty",
+        headers=HEADERS, params={"batch_no": batch_id, "item_code": item_code})
+    if response.status_code >= 400:
+        handle_erp_response(response, "Batch balance lookup")
+    balances = response.json().get("message") or []
+    positive = [row for row in balances if float(row.get("qty") or 0) > 0]
+    if len(positive) != 1 or float(positive[0].get("qty") or 0) != 1:
+        raise HTTPException(status_code=409, detail="Carton Batch must have exactly 1 No. in one source warehouse.")
+    return positive[0]["warehouse"]
+
 def get_item_source_warehouse(item_code: str) -> str:
     try:
         r = requests.get(
@@ -575,9 +613,46 @@ def get_item_source_warehouse(item_code: str) -> str:
         pass
     return "Stores - V"
 
-def perform_stock_transfer(item_code: str, qty: float, source_warehouse: str, target_warehouse: str):
+def find_stock_entry_by_remarks(idempotency_key: str) -> dict | None:
+    response = requests.get(f"{ERP_URL}/api/resource/Stock Entry", headers=HEADERS,
+        params={"filters": json.dumps([["remarks", "=", idempotency_key]]),
+                "fields": json.dumps(["name", "docstatus"]), "limit_page_length": 2})
+    if response.status_code >= 400:
+        handle_erp_response(response, "Stock Entry replay lookup")
+    matches = response.json().get("data", [])
+    if len(matches) > 1:
+        raise HTTPException(status_code=409, detail="Duplicate stock moves use this command ID.")
+    if not matches:
+        return None
+    saved_response = erp_get("Stock Entry", matches[0]["name"])
+    if saved_response.status_code >= 400:
+        handle_erp_response(saved_response, "Stock Entry replay read")
+    return saved_response.json().get("data", {})
+
+def perform_stock_transfer(item_code: str, qty: float, source_warehouse: str, target_warehouse: str,
+                           batch_no: str | None = None, idempotency_key: str | None = None):
     company = resolve_latest_doc("Company") or "Rearly Tech"
-    
+    if batch_no:
+        batch_response = erp_get("Batch", batch_no)
+        if batch_response.status_code != 200:
+            raise HTTPException(status_code=404, detail="Carton Batch does not exist.")
+        batch_item = batch_response.json().get("data", {}).get("item")
+        if batch_item != item_code:
+            raise HTTPException(status_code=409, detail="Carton Batch does not belong to this Item.")
+    if idempotency_key:
+        saved = find_stock_entry_by_remarks(idempotency_key)
+        if saved:
+            lines = saved.get("items") or []
+            same = len(lines) == 1 and lines[0].get("item_code") == item_code \
+                and lines[0].get("s_warehouse") == source_warehouse \
+                and lines[0].get("t_warehouse") == target_warehouse \
+                and float(lines[0].get("qty") or 0) == float(qty) \
+                and (not batch_no or lines[0].get("batch_no") == batch_no)
+            if not same:
+                raise HTTPException(status_code=409, detail="Command ID was already used for a different carton move.")
+            if int(saved.get("docstatus") or 0) != 1:
+                submit_doc("Stock Entry", saved["name"])
+            return saved
     payload = {
         "doctype": "Stock Entry",
         "stock_entry_type": "Material Transfer",
@@ -590,15 +665,24 @@ def perform_stock_transfer(item_code: str, qty: float, source_warehouse: str, ta
                 "s_warehouse": source_warehouse,
                 "t_warehouse": target_warehouse,
                 "uom": "Nos",
+                "stock_uom": "Nos",
+                "conversion_factor": 1,
                 "allow_zero_valuation_rate": 1
             }
         ]
     }
+    if idempotency_key:
+        payload["remarks"] = idempotency_key
+    if batch_no:
+        payload["items"][0]["batch_no"] = batch_no
+        payload["items"][0]["use_serial_batch_fields"] = 1
     
     try:
         r_item = requests.get(f"{ERP_URL}/api/resource/Item/{item_code}", headers=HEADERS)
         if r_item.status_code == 200:
-            payload["items"][0]["uom"] = r_item.json().get("data", {}).get("stock_uom") or "Nos"
+            stock_uom = r_item.json().get("data", {}).get("stock_uom") or "Nos"
+            payload["items"][0]["uom"] = stock_uom
+            payload["items"][0]["stock_uom"] = stock_uom
     except Exception:
         pass
         
@@ -804,4 +888,3 @@ def api_wms_activity_log():
         return []
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBLE } from '../Blecontext';
 import { useIsFocused } from '@react-navigation/native';
 
+const REQUIRED_TRACK_A_CONTRACT = '2026-09-24.track-a-batch-v2';
+
 const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: any }) => {
   const isFocused = useIsFocused();
   const { rfid, connectedDevice } = useBLE();
@@ -33,11 +35,40 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
   const [warehouses, setWarehouses] = useState<string[]>([]);
   const [loadingWarehouses, setLoadingWarehouses] = useState(false);
   const [showBinDropdown, setShowBinDropdown] = useState(false);
+  const [contractReady, setContractReady] = useState(false);
+  const [contractStatus, setContractStatus] = useState('Checking WMS carton contract...');
+  const [checkingContract, setCheckingContract] = useState(false);
 
   const [isManual, setIsManual] = useState(false);
   const [scanStep, setScanStep] = useState<'item' | 'pallet'>('item');
 
   // Fetch warehouse list on mount
+  const checkContract = useCallback(async () => {
+    setCheckingContract(true);
+    setContractStatus('Checking WMS carton contract...');
+    try {
+      const response = await fetch('http://77.42.39.77:8000/wms/track-a-contract');
+      const value = response.ok ? await response.json() : null;
+      const ready = value?.version === REQUIRED_TRACK_A_CONTRACT
+        && value?.exact_batch_required === true
+        && value?.stock_uom === 'Nos'
+        && value?.stable_command_required === true;
+      setContractReady(ready);
+      setContractStatus(ready
+        ? 'WMS ready: exact carton Batch and 1 Nos.'
+        : 'WMS update required. Assignment is blocked to protect carton stock.');
+    } catch (_) {
+      setContractReady(false);
+      setContractStatus('WMS contract is unavailable. Assignment is blocked.');
+    } finally {
+      setCheckingContract(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void checkContract();
+  }, [checkContract]);
+
   useEffect(() => {
     const fetchWarehouses = async () => {
       try {
@@ -81,6 +112,10 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
   }, [rfid, isFocused]);
 
   const handleAssign = async () => {
+    if (!contractReady) {
+      Alert.alert('WMS Update Required', contractStatus);
+      return;
+    }
     if (!scannedRfid) {
       Alert.alert('Error', 'Please scan or enter an item RFID tag first.');
       return;
@@ -100,11 +135,13 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
         body: JSON.stringify({
           item_rfid: scannedRfid,
           pallet_id: palletId,
+          command_id: `receive:${scannedRfid.trim()}:${palletId.trim()}`,
         }),
       });
 
       if (response.ok) {
-        setSuccessMessage(`Successfully registered RFID tag [${scannedRfid}] on Pallet [${palletId}]!`);
+        const result = await response.json();
+        setSuccessMessage(`Carton Batch [${result.batch_id}] is on Pallet [${palletId}]. Trace: ${result.trace_code || 'not recorded'}.`);
         setScannedRfid('');
         setPalletId('');
         setScanStep('item');
@@ -141,6 +178,15 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
       </View>
 
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={[styles.instructionCard, !contractReady && styles.contractBlocked]}>
+          <Icon name={contractReady ? 'check-circle' : 'alert-triangle'} size={20} color={contractReady ? '#3fbf75' : '#f4b740'} style={{ marginRight: 8 }} />
+          <Text style={[styles.instructionText, styles.contractText]}>{contractStatus}</Text>
+          {!contractReady && (
+            <TouchableOpacity style={styles.contractAction} onPress={checkContract} disabled={checkingContract}>
+              <Text style={styles.contractActionText}>{checkingContract ? 'CHECKING' : 'CHECK AGAIN'}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
         {/* INSTRUCTIONS */}
         <View style={styles.instructionCard}>
           <Icon name="info" size={20} color="#3fbf75" style={{ marginRight: 8 }} />
@@ -263,9 +309,9 @@ const ReceivePalletScreen = ({ navigation, route }: { navigation: any; route: an
           )}
 
           <TouchableOpacity
-            style={[styles.primaryButton, loading && styles.disabledButton]}
+            style={[styles.primaryButton, (loading || !contractReady) && styles.disabledButton]}
             onPress={handleAssign}
-            disabled={loading}
+            disabled={loading || !contractReady}
           >
             {loading ? (
               <ActivityIndicator color="#0a0f16" />
@@ -299,6 +345,25 @@ const styles = StyleSheet.create({
     height: hp(8),
     paddingHorizontal: wp(4),
     elevation: 4,
+  },
+  contractBlocked: {
+    borderColor: '#f4b740',
+  },
+  contractText: {
+    flex: 1,
+  },
+  contractAction: {
+    borderColor: '#f4b740',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  contractActionText: {
+    color: '#f4b740',
+    fontFamily: 'Archivo',
+    fontSize: 11,
+    fontWeight: '700',
   },
   backButton: {
     backgroundColor: '#18242f',
