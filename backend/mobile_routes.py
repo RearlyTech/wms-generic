@@ -9,13 +9,58 @@ import fastapi
 
 router = APIRouter(tags=["Mobile"])
 
+@router.get("/wms/track-a-contract")
+def api_track_a_contract():
+    return {
+        "version": TRACK_A_CONTRACT_VERSION,
+        "exact_batch_required": True,
+        "stock_uom": "Nos",
+        "stable_command_required": True,
+        "source_balance_required": True,
+    }
+
 @router.post("/wms/receive")
 def api_wms_receive(data: WmsReceiveSchema):
     try:
-        item_code = resolve_item_from_rfid(data.item_rfid)
-        source_wh = get_item_source_warehouse(item_code)
+        batch = resolve_batch_from_rfid(data.item_rfid)
+        if not batch or not batch.get("name") or not batch.get("item"):
+            raise HTTPException(status_code=404, detail="RFID tag does not identify an ERP Batch carton.")
+        batch_id = batch["name"]
+        item_code = batch["item"]
         target_pallet = resolve_warehouse_from_rfid(data.pallet_id)
-        se = perform_stock_transfer(item_code, 1.0, source_wh, target_pallet)
+        target_response = erp_get("Warehouse", target_pallet)
+        if target_response.status_code != 200:
+            raise HTTPException(status_code=404, detail="Target pallet Warehouse does not exist.")
+        target = target_response.json().get("data", {})
+        if int(target.get("is_group") or 0) or int(target.get("disabled") or 0):
+            raise HTTPException(status_code=409, detail="Select an active leaf pallet Warehouse.")
+        item_response = erp_get("Item", item_code)
+        if item_response.status_code != 200 or item_response.json().get("data", {}).get("stock_uom") not in ("Nos", "No.s"):
+            raise HTTPException(status_code=409, detail="Carton Item must use the Nos stock unit.")
+        command_id = data.command_id.strip()
+        if not command_id or len(command_id) > 160:
+            raise HTTPException(status_code=422, detail="Use a command ID with 1 to 160 characters.")
+        key = "WMS-RECEIVE:" + command_id
+        saved = find_stock_entry_by_remarks(key)
+        if saved:
+            lines = saved.get("items") or []
+            same = len(lines) == 1 and lines[0].get("item_code") == item_code \
+                and lines[0].get("batch_no") == batch_id \
+                and lines[0].get("t_warehouse") == target_pallet \
+                and float(lines[0].get("qty") or 0) == 1.0
+            if not same:
+                raise HTTPException(status_code=409, detail="Command ID was already used for a different carton move.")
+            return {"message": "Success", "contract_version": TRACK_A_CONTRACT_VERSION,
+                    "stock_entry": saved["name"], "replayed": True,
+                    "batch_id": batch_id, "item_code": item_code, "target_warehouse": target_pallet,
+                    "trace_code": batch.get("custom_marine_trace_code"),
+                    "source_run_id": batch.get("custom_marine_source_run_id"),
+                    "source_lot_id": batch.get("custom_marine_source_lot_id")}
+        source_wh = get_batch_source_warehouse(batch_id, item_code)
+        if source_wh == target_pallet:
+            raise HTTPException(status_code=409, detail="Carton is already in this pallet Warehouse.")
+        se = perform_stock_transfer(item_code, 1.0, source_wh, target_pallet,
+                                    batch_no=batch_id, idempotency_key=key)
         
         # Log activity in ERPNext
         try:
@@ -24,12 +69,18 @@ def api_wms_receive(data: WmsReceiveSchema):
                 operator="System",
                 target_location=target_pallet,
                 old_tag=data.item_rfid,
-                details=f"Received item {item_code} and assigned to Pallet {data.pallet_id}"
+                details=f"Moved Batch {batch_id} for source run {batch.get('custom_marine_source_run_id') or 'not recorded'} from {source_wh} to {target_pallet}"
             )
         except Exception:
             pass
             
-        return {"message": "Success", "stock_entry": se["name"]}
+        return {"message": "Success", "contract_version": TRACK_A_CONTRACT_VERSION,
+                "stock_entry": se["name"], "replayed": False,
+                "batch_id": batch_id, "item_code": item_code,
+                "source_warehouse": source_wh, "target_warehouse": target_pallet,
+                "trace_code": batch.get("custom_marine_trace_code"),
+                "source_run_id": batch.get("custom_marine_source_run_id"),
+                "source_lot_id": batch.get("custom_marine_source_lot_id")}
     except HTTPException:
         raise
     except Exception as e:
@@ -1116,7 +1167,22 @@ def api_wms_resolve_tag_info(rfid: str):
                 "is_reserved": is_reserved
             }
             
-        # 2. Try to resolve as an item
+        # 2. A Packing carton is one exact Batch. Resolve it before Item fallbacks.
+        batch = resolve_batch_from_rfid(rfid)
+        if batch and batch.get("name") and batch.get("item"):
+            location = get_batch_source_warehouse(batch["name"], batch["item"])
+            item_name = batch["item"]
+            item_response = erp_get("Item", batch["item"])
+            if item_response.status_code == 200:
+                item_name = item_response.json().get("data", {}).get("item_name") or item_name
+            return {"rfid": rfid, "type": "Batch", "name": item_name,
+                    "batch_id": batch["name"], "item_code": batch["item"],
+                    "location": location,
+                    "trace_code": batch.get("custom_marine_trace_code"),
+                    "source_run_id": batch.get("custom_marine_source_run_id"),
+                    "source_lot_id": batch.get("custom_marine_source_lot_id")}
+
+        # 3. Try to resolve as an item
         item_code = "Unknown"
         try:
             item_code = resolve_item_from_rfid(rfid)
