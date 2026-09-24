@@ -1473,10 +1473,7 @@ def api_wms_stores():
                 }
             
             qty = float(entry.get("qty") or 0)
-            if entry.get("type_of_transaction") == "Outward":
-                balances[batch]["qty"] -= qty
-            else:
-                balances[batch]["qty"] += qty
+            balances[batch]["qty"] += qty
                 
         stores_cartons = []
         for batch, data in balances.items():
@@ -1530,7 +1527,7 @@ def api_wms_in_transit():
             if batch not in balances:
                 balances[batch] = {"qty": 0, "item_code": entry.get("item_code", "Unknown Item")}
             
-            qty = float(entry.get("qty") or 0)
+            qty = abs(float(entry.get("qty") or 0))
             if entry.get("type_of_transaction") == "Outward":
                 balances[batch]["qty"] -= qty
             else:
@@ -1568,7 +1565,7 @@ def get_all_balances(warehouse: str) -> dict:
             for e in r.json().get("message", []):
                 b = e.get("batch_no")
                 if not b: continue
-                q = float(e.get("qty") or 0)
+                q = abs(float(e.get("qty") or 0))
                 if b not in balances:
                     balances[b] = 0.0
                 if e.get("type_of_transaction") == "Outward":
