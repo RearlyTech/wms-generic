@@ -1344,6 +1344,135 @@ class StockOutSchema(BaseModel):
 class StockOutBulkSchema(BaseModel):
     rfid_tags: List[str]
 
+@router.post("/packing/ante-stock-in")
+def api_ante_packing_stock_in(data: StockInSchema):
+    try:
+        company = resolve_latest_doc("Company") or "Rearly Tech"
+        company_abbr = get_company_abbr(company)
+        
+        # 1. Look up the existing Batch (created by the panel)
+        batch_res = requests.get(f"{ERP_URL}/api/resource/Batch/{data.rfid_tag}", headers=HEADERS)
+        if batch_res.status_code != 200:
+            raise HTTPException(status_code=404, detail=f"Carton with RFID {data.rfid_tag} not found! Please ensure it was created in the panel.")
+            
+        batch_data = batch_res.json().get("data", {})
+        item_code = batch_data.get("item") or data.item_code
+        
+        # Try to get weight from the batch if the panel saved it there, otherwise default to 1.0
+        qty = batch_data.get("weight") or batch_data.get("net_weight") or 1.0
+        
+        batch_no = data.rfid_tag
+        
+        # 2. Format warehouse name
+        target_warehouse = f"Stores - {company_abbr}"
+        source_warehouse = f"Labels - {company_abbr}"
+        
+        now = datetime.datetime.now()
+        
+        # 3. Create Stock Entry (Material Transfer)
+        se_payload = {
+            "doctype": "Stock Entry",
+            "stock_entry_type": "Material Transfer",
+            "purpose": "Material Transfer",
+            "company": company,
+            "posting_date": now.strftime("%Y-%m-%d"),
+            "posting_time": now.strftime("%H:%M:%S"),
+            "set_posting_time": 1,
+            "items": [
+                {
+                    "item_code": item_code,
+                    "qty": qty,
+                    "s_warehouse": source_warehouse,
+                    "t_warehouse": target_warehouse,
+                    "batch_no": batch_no,
+                    "uom": "Kg",
+                    "allow_zero_valuation_rate": 1,
+                    "use_serial_batch_fields": 1
+                }
+            ]
+        }
+        
+        # Ensure UOM is accurate if possible
+        try:
+            r_item = requests.get(f"{ERP_URL}/api/resource/Item/{data.item_code}", headers=HEADERS)
+            if r_item.status_code == 200:
+                se_payload["items"][0]["uom"] = r_item.json().get("data", {}).get("stock_uom") or "Kg"
+        except Exception:
+            pass
+            
+        se = erp_post("Stock Entry", se_payload)
+        submit_doc("Stock Entry", se["name"])
+        
+        return {"message": "Success", "batch_no": batch_no, "stock_entry": se["name"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/packing/ante-stock-in-bulk")
+def api_ante_packing_stock_in_bulk(data: StockInBulkSchema):
+    try:
+        if not data.rfid_tags:
+            raise HTTPException(status_code=400, detail="No tags provided.")
+            
+        company = resolve_latest_doc("Company") or "Rearly Tech"
+        company_abbr = get_company_abbr(company)
+        
+        target_warehouse = f"Stores - {company_abbr}"
+        source_warehouse = f"Labels - {company_abbr}"
+        now = datetime.datetime.now()
+        
+        items = []
+        for rfid in data.rfid_tags:
+            # Look up existing Batch
+            batch_res = requests.get(f"{ERP_URL}/api/resource/Batch/{rfid}", headers=HEADERS)
+            if batch_res.status_code != 200:
+                raise HTTPException(status_code=404, detail=f"Carton with RFID {rfid} not found!")
+                
+            batch_data = batch_res.json().get("data", {})
+            item_code = batch_data.get("item") or data.item_code
+            qty = batch_data.get("weight") or batch_data.get("net_weight") or 1.0
+            
+            # Fetch UOM
+            uom = "Kg"
+            try:
+                r_item = requests.get(f"{ERP_URL}/api/resource/Item/{item_code}", headers=HEADERS)
+                if r_item.status_code == 200:
+                    uom = r_item.json().get("data", {}).get("stock_uom") or "Kg"
+            except Exception:
+                pass
+                
+            items.append({
+                "item_code": item_code,
+                "qty": qty,
+                "s_warehouse": source_warehouse,
+                "t_warehouse": target_warehouse,
+                "batch_no": rfid,
+                "uom": uom,
+                "allow_zero_valuation_rate": 1,
+                "use_serial_batch_fields": 1
+            })
+            
+        se_payload = {
+            "doctype": "Stock Entry",
+            "stock_entry_type": "Material Transfer",
+            "purpose": "Material Transfer",
+            "company": company,
+            "posting_date": now.strftime("%Y-%m-%d"),
+            "posting_time": now.strftime("%H:%M:%S"),
+            "set_posting_time": 1,
+            "items": items
+        }
+        
+        se = erp_post("Stock Entry", se_payload)
+        submit_doc("Stock Entry", se["name"])
+        
+        return {"message": "Success", "stock_entry": se["name"]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.post("/packing/stock-in")
 def api_packing_stock_in(data: StockInSchema):
     try:
@@ -1673,6 +1802,84 @@ def api_wms_stores():
         raise
     except Exception as e:
         print("ERROR in /wms/stores:", e)
+        return []
+
+@router.get("/wms/labels")
+def api_wms_labels():
+    try:
+        company = resolve_latest_doc("Company") or "Rearly Tech"
+        company_abbr = get_company_abbr(company)
+        labels_wh = f"Labels - {company_abbr}"
+        
+        # In ERPNext v15, batch data is stored in 'Serial and Batch Entry' linked to a Bundle.
+        # We must use get_list to join and fetch child table fields without hitting permission errors.
+        r = requests.post(
+            f"{ERP_URL}/api/method/frappe.client.get_list",
+            headers=HEADERS,
+            json={
+                "doctype": "Serial and Batch Bundle",
+                "filters": {"warehouse": labels_wh, "docstatus": 1},
+                "fields": ["name", "type_of_transaction", "item_code", "`tabSerial and Batch Entry`.batch_no", "`tabSerial and Batch Entry`.qty"],
+                "limit_page_length": 5000
+            }
+        )
+        if r.status_code != 200:
+            print("ERROR in /wms/labels:", r.text)
+            return []
+            
+        entries = r.json().get("message", [])
+        
+        # Fetch item names for all unique item codes
+        item_codes = list(set(e.get("item_code") for e in entries if e.get("item_code")))
+        item_names = {}
+        if item_codes:
+            r_items = requests.post(
+                f"{ERP_URL}/api/method/frappe.client.get_list",
+                headers=HEADERS,
+                json={
+                    "doctype": "Item",
+                    "filters": [["name", "in", item_codes]],
+                    "fields": ["name", "item_name"],
+                    "limit_page_length": len(item_codes)
+                }
+            )
+            if r_items.status_code == 200:
+                for it in r_items.json().get("message", []):
+                    item_names[it["name"]] = it.get("item_name") or it["name"]
+        
+        # Calculate balance per batch
+        balances = {}
+        for entry in entries:
+            batch = entry.get("batch_no")
+            if not batch: continue
+            
+            if batch not in balances:
+                i_code = entry.get("item_code", "Unknown Item")
+                balances[batch] = {
+                    "qty": 0, 
+                    "item_code": i_code,
+                    "item_name": item_names.get(i_code, i_code)
+                }
+            
+            qty = float(entry.get("qty") or 0)
+            balances[batch]["qty"] += qty
+                
+        stores_cartons = []
+        for batch, data in balances.items():
+            # Use a threshold of 0.001 to ignore floating point dust
+            if data["qty"] > 0.001:
+                stores_cartons.append({
+                    "batch_id": batch,
+                    "qty": round(data["qty"], 2),
+                    "item_code": data["item_code"],
+                    "item_name": data["item_name"]
+                })
+        
+        return sorted(stores_cartons, key=lambda x: x["batch_id"])
+    except HTTPException:
+        raise
+    except Exception as e:
+        print("ERROR in /wms/labels:", e)
         return []
 
 @router.get("/wms/in-transit")
