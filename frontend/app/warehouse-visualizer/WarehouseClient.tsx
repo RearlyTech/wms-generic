@@ -3,8 +3,8 @@
 import { useState, useMemo } from "react";
 import { WarehouseNode, Item } from "@/lib/warehouse-data";
 import { ArrowLeft, Search, Loader2, MapPin, Package, ChevronRight, RefreshCw } from "lucide-react";
-import { useRouter } from "next/navigation";interface Props {
-    initialWarehouses: {id: string, name: string}[];
+import { useRouter } from "next/navigation"; interface Props {
+    initialWarehouses: { id: string, name: string }[];
     initialRacksMap: Record<string, WarehouseNode[]>;
     backendUrl: string;
     onRefresh: () => Promise<void>;
@@ -102,7 +102,7 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
         setSearchQuery("");
         clearSelection();
     }
-    
+
     const markForDispatch = async (batchNo: string) => {
         setMarkingBatch(batchNo);
         try {
@@ -113,7 +113,7 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
             setMarkingBatch(null);
         }
     }
-    
+
     const markPalletForDispatch = async (palletId: string) => {
         setMarkingBatch(palletId);
         try {
@@ -126,8 +126,8 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
     }
 
     if (!selectedWarehouse) {
-        const filteredWarehouses = initialWarehouses.filter(w => 
-            w.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        const filteredWarehouses = initialWarehouses.filter(w =>
+            w.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             w.id.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
@@ -164,7 +164,7 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                     </div>
                     <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-3 text-center">Select Facility</h2>
                     <p className="text-slate-500 text-base mb-10 text-center max-w-lg">Choose a warehouse or bin location from your ERP system to visualize its physical layout.</p>
-                    
+
                     <div className="w-full max-w-2xl relative mb-10">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <Search className="h-5 w-5 text-slate-400" />
@@ -180,8 +180,8 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
 
                     <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                         {filteredWarehouses.map(w => (
-                            <button 
-                                key={w.id} 
+                            <button
+                                key={w.id}
                                 onClick={() => setSelectedWarehouse(w.id)}
                                 className="relative bg-white hover:bg-slate-50 text-left p-5 rounded-2xl transition-all shadow-sm border border-slate-200 hover:border-indigo-400 group overflow-hidden flex flex-col justify-between min-h-[130px]"
                             >
@@ -218,7 +218,7 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
             <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-20 shrink-0">
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => router.push("/dashboard")}
+                        onClick={clearAll}
                         className="p-2 -ml-2 rounded-full hover:bg-slate-100 transition-colors text-slate-600"
                     >
                         <ArrowLeft className="w-5 h-5" />
@@ -229,17 +229,17 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                             Warehouse Visualizer
                         </h1>
                         <div className="flex items-center gap-1.5 mt-1.5">
-                            <button 
+                            <button
                                 onClick={() => navigateUp(-1)}
                                 className="px-2 py-0.5 hover:bg-indigo-100 bg-indigo-50 text-indigo-700 rounded text-[11px] font-bold border border-indigo-200 transition-colors cursor-pointer"
                             >
                                 {initialWarehouses.find(w => w.id === selectedWarehouse)?.name || selectedWarehouse}
                             </button>
-                            
+
                             {viewContext.map((node, idx) => (
                                 <div key={node.id} className="flex items-center gap-1.5">
                                     <ChevronRight className="w-3 h-3 text-slate-400" />
-                                    <button 
+                                    <button
                                         onClick={() => navigateUp(idx)}
                                         className="px-2 py-0.5 hover:bg-slate-200 bg-slate-100 text-slate-700 rounded text-[11px] font-bold border border-slate-200 transition-colors cursor-pointer"
                                     >
@@ -250,7 +250,7 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                     <button
                         onClick={handleRefreshClick}
@@ -261,14 +261,14 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
                         Refresh
                     </button>
                     {selectedL1 && (
-                        <button 
+                        <button
                             onClick={clearSelection}
                             className="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors border border-slate-300 text-sm shadow-sm"
                         >
                             Clear Selection
                         </button>
                     )}
-                    <button 
+                    <button
                         onClick={clearAll}
                         className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-semibold transition-colors border border-indigo-200 text-sm flex items-center gap-2 shadow-sm"
                     >
@@ -280,203 +280,202 @@ export default function WarehouseClient({ initialWarehouses, initialRacksMap, ba
 
             <div className="flex flex-1 overflow-hidden p-6 gap-6 w-full max-w-[1600px] mx-auto">
                 <div className="flex-1 overflow-auto bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col items-center">
-                
-                {currentParentNodes.length === 0 ? (
-                    <div className="flex-1 flex flex-col items-center justify-center text-center">
-                        <MapPin className="w-12 h-12 text-slate-300 mb-4" />
-                        <h2 className="text-xl font-bold text-slate-800 mb-2">No Layout Data</h2>
-                        <p className="text-slate-500 max-w-sm text-sm">There are no locations configured at this level.</p>
-                    </div>
-                ) : (
-                    <>
-                    <div className="w-full max-w-4xl flex items-center justify-between mb-6">
-                        <button 
-                            onClick={handlePrevL1}
-                            className="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm border border-slate-300 flex items-center gap-2 text-sm"
-                        >
-                            <ArrowLeft className="w-4 h-4" />
-                            Prev
-                        </button>
-                        
-                        <div className="text-slate-700 font-bold text-sm bg-slate-100 px-4 py-1.5 rounded-full border border-slate-200">
-                            {currentL1Node?.name} ({currentL1Index + 1} of {currentParentNodes.length})
+
+                    {currentParentNodes.length === 0 ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center">
+                            <MapPin className="w-12 h-12 text-slate-300 mb-4" />
+                            <h2 className="text-xl font-bold text-slate-800 mb-2">No Layout Data</h2>
+                            <p className="text-slate-500 max-w-sm text-sm">There are no locations configured at this level.</p>
                         </div>
-                        
-                        <button 
-                            onClick={handleNextL1}
-                            className="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm border border-slate-300 flex items-center gap-2 text-sm"
-                        >
-                            Next
-                            <ArrowLeft className="w-4 h-4 rotate-180" />
-                        </button>
-                    </div>
-
-                    <div className="w-full max-w-4xl h-fit">
-                        {(() => {
-                            const l1Node = currentL1Node;
-                            if (!l1Node) return null;
-                            const isL1Selected = selectedL1?.id === l1Node.id;
-                            
-                            return (
-                                <div 
-                                    key={l1Node.id} 
-                                    className={`border-[3px] rounded-2xl p-5 transition-all cursor-pointer relative ${isL1Selected ? 'border-indigo-500 bg-indigo-50/30' : 'border-slate-300 bg-white hover:border-slate-400'}`}
-                                    onClick={() => handleL1Click(l1Node)}
+                    ) : (
+                        <>
+                            <div className="w-full max-w-4xl flex items-center justify-between mb-6">
+                                <button
+                                    onClick={handlePrevL1}
+                                    className="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm border border-slate-300 flex items-center gap-2 text-sm"
                                 >
-                                    <div className="flex justify-between items-center mb-5">
-                                        <h2 className="text-lg font-extrabold text-slate-800">{l1Node.name}</h2>
-                                        {isL1Selected && <div className="px-2 py-1 bg-indigo-500 rounded text-white text-[10px] font-bold shadow-sm uppercase tracking-wider">Selected</div>}
-                                    </div>
-                                    
-                                    <div className="flex flex-col gap-4">
-                                        {(l1Node.children || []).map(l2Node => {
-                                            const isL2Selected = selectedL2?.id === l2Node.id;
-                                            
-                                            return (
-                                                <div 
-                                                    key={l2Node.id}
-                                                    className={`border-2 rounded-xl p-4 flex flex-col transition-all cursor-pointer relative ${isL2Selected ? 'border-emerald-500 bg-emerald-50/50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}
-                                                    onClick={(e) => { e.stopPropagation(); handleL2Click(l1Node, l2Node); }}
-                                                >
-                                                    <div className="flex justify-between items-center mb-3">
-                                                        <h3 className="text-sm font-bold text-slate-700">{l2Node.name}</h3>
-                                                        {isL2Selected && <div className="px-2 py-0.5 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[9px] font-bold uppercase tracking-wider">Selected</div>}
-                                                    </div>
-                                                    
-                                                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                                                            {(l2Node.children || []).map(l3Node => {
-                                                                const isL3Selected = selectedL3?.id === l3Node.id;
-                                                                const l3Items = l3Node.items || [];
-                                                                const l3Children = l3Node.children || [];
-                                                                const isEmpty = l3Items.length === 0 && l3Children.length === 0;
-                                                                
-                                                                const hasChildren = l3Children.length > 0;
-                                                                
-                                                                return (
-                                                                    <div 
-                                                                        key={l3Node.id}
-                                                                        className={`relative border-2 rounded-lg p-2 h-24 flex flex-col items-center justify-center transition-all cursor-pointer group ${
-                                                                            isL3Selected 
-                                                                            ? 'border-indigo-500 bg-indigo-50 shadow-md ring-2 ring-indigo-500/20 ring-offset-1' 
-                                                                            : isEmpty 
-                                                                                ? 'border-slate-200 border-dashed bg-white hover:border-slate-300' 
-                                                                                : 'border-slate-300 bg-white hover:border-indigo-300 shadow-sm'
-                                                                        }`}
-                                                                        onClick={(e) => { 
-                                                                            e.stopPropagation(); 
-                                                                            if (hasChildren) {
-                                                                                drillDown(l1Node, l2Node, l3Node);
-                                                                            } else {
-                                                                                handleL3Click(l1Node, l2Node, l3Node);
-                                                                            }
-                                                                        }}
-                                                                    >
-                                                                    {isL3Selected && !hasChildren && (
-                                                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-20 pointer-events-none">
-                                                                            <div className="bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-md whitespace-nowrap mb-0.5">
-                                                                                {l3Node.name}
-                                                                            </div>
-                                                                            <div className="w-0.5 h-2 bg-indigo-600 shadow-sm"></div>
-                                                                            <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 shadow-md border border-white"></div>
-                                                                        </div>
-                                                                    )}
+                                    <ArrowLeft className="w-4 h-4" />
+                                    Prev
+                                </button>
 
-                                                                    <h4 className={`text-xs font-black mb-1 ${isL3Selected ? 'text-indigo-700' : 'text-slate-700'}`}>
-                                                                        {l3Node.name}
-                                                                    </h4>
-                                                                    
-                                                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isEmpty ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-600 border border-slate-200'} text-center leading-tight`}>
-                                                                        {isEmpty ? "Empty" : hasChildren ? `${l3Children.length} Locations\n(Click to Drill)` : `${l3Items.length} Items`}
-                                                                    </span>
+                                <div className="text-slate-700 font-bold text-sm bg-slate-100 px-4 py-1.5 rounded-full border border-slate-200">
+                                    {currentL1Node?.name} ({currentL1Index + 1} of {currentParentNodes.length})
+                                </div>
 
-                                                                    {isL3Selected && !isEmpty && !hasChildren && (
-                                                                        <div 
-                                                                            className="absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-30 w-48 ring-1 ring-black/5"
-                                                                            onClick={(e) => e.stopPropagation()}
+                                <button
+                                    onClick={handleNextL1}
+                                    className="bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 rounded-lg font-semibold transition-colors shadow-sm border border-slate-300 flex items-center gap-2 text-sm"
+                                >
+                                    Next
+                                    <ArrowLeft className="w-4 h-4 rotate-180" />
+                                </button>
+                            </div>
+
+                            <div className="w-full max-w-4xl h-fit">
+                                {(() => {
+                                    const l1Node = currentL1Node;
+                                    if (!l1Node) return null;
+                                    const isL1Selected = selectedL1?.id === l1Node.id;
+
+                                    return (
+                                        <div
+                                            key={l1Node.id}
+                                            className={`border-[3px] rounded-2xl p-5 transition-all cursor-pointer relative ${isL1Selected ? 'border-indigo-500 bg-indigo-50/30' : 'border-slate-300 bg-white hover:border-slate-400'}`}
+                                            onClick={() => handleL1Click(l1Node)}
+                                        >
+                                            <div className="flex justify-between items-center mb-5">
+                                                <h2 className="text-lg font-extrabold text-slate-800">{l1Node.name}</h2>
+                                                {isL1Selected && <div className="px-2 py-1 bg-indigo-500 rounded text-white text-[10px] font-bold shadow-sm uppercase tracking-wider">Selected</div>}
+                                            </div>
+
+                                            <div className="flex flex-col gap-4">
+                                                {(l1Node.children || []).map(l2Node => {
+                                                    const isL2Selected = selectedL2?.id === l2Node.id;
+
+                                                    return (
+                                                        <div
+                                                            key={l2Node.id}
+                                                            className={`border-2 rounded-xl p-4 flex flex-col transition-all cursor-pointer relative ${isL2Selected ? 'border-emerald-500 bg-emerald-50/50' : 'border-slate-200 bg-slate-50 hover:border-slate-300'}`}
+                                                            onClick={(e) => { e.stopPropagation(); handleL2Click(l1Node, l2Node); }}
+                                                        >
+                                                            <div className="flex justify-between items-center mb-3">
+                                                                <h3 className="text-sm font-bold text-slate-700">{l2Node.name}</h3>
+                                                                {isL2Selected && <div className="px-2 py-0.5 bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-[9px] font-bold uppercase tracking-wider">Selected</div>}
+                                                            </div>
+
+                                                            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                                                                {(l2Node.children || []).map(l3Node => {
+                                                                    const isL3Selected = selectedL3?.id === l3Node.id;
+                                                                    const l3Items = l3Node.items || [];
+                                                                    const l3Children = l3Node.children || [];
+                                                                    const isEmpty = l3Items.length === 0 && l3Children.length === 0;
+
+                                                                    const hasChildren = l3Children.length > 0;
+
+                                                                    return (
+                                                                        <div
+                                                                            key={l3Node.id}
+                                                                            className={`relative border-2 rounded-lg p-2 h-24 flex flex-col items-center justify-center transition-all cursor-pointer group ${isL3Selected
+                                                                                    ? 'border-indigo-500 bg-indigo-50 shadow-md ring-2 ring-indigo-500/20 ring-offset-1'
+                                                                                    : isEmpty
+                                                                                        ? 'border-slate-200 border-dashed bg-white hover:border-slate-300'
+                                                                                        : 'border-slate-300 bg-white hover:border-indigo-300 shadow-sm'
+                                                                                }`}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if (hasChildren) {
+                                                                                    drillDown(l1Node, l2Node, l3Node);
+                                                                                } else {
+                                                                                    handleL3Click(l1Node, l2Node, l3Node);
+                                                                                }
+                                                                            }}
                                                                         >
-                                                                            <div className="flex justify-between items-center mb-2 border-b border-slate-100 pb-1">
-                                                                                <h5 className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Contents</h5>
-                                                                                {l3Node.markedForDispatch ? (
-                                                                                    <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Marked</span>
-                                                                                ) : (
-                                                                                    <button 
-                                                                                        onClick={async () => await markPalletForDispatch(l3Node.id)}
-                                                                                        disabled={markingBatch === l3Node.id}
-                                                                                        className="text-[9px] font-bold text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded transition-colors disabled:opacity-50 flex items-center gap-1"
-                                                                                    >
-                                                                                        {markingBatch === l3Node.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Dispatch Pallet"}
-                                                                                    </button>
-                                                                                )}
-                                                                            </div>
-                                                                            <div className="flex flex-col gap-2">
-                                                                                {l3Items.map(item => (
-                                                                                    <div key={item.itemCode} className="flex flex-col mb-1 last:mb-0">
-                                                                                        <div className="flex justify-between items-start gap-2">
-                                                                                            <span className="text-[11px] font-bold text-slate-800 leading-tight">{item.itemName}</span>
-                                                                                            <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 whitespace-nowrap">
-                                                                                                {item.totalWeight}{item.uom}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                        {item.expiryDate && (
-                                                                                            <span className={`text-[9px] font-medium mt-1 text-slate-500`}>
-                                                                                                Exp: {item.expiryDate}
-                                                                                            </span>
+                                                                            {isL3Selected && !hasChildren && (
+                                                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce z-20 pointer-events-none">
+                                                                                    <div className="bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-md whitespace-nowrap mb-0.5">
+                                                                                        {l3Node.name}
+                                                                                    </div>
+                                                                                    <div className="w-0.5 h-2 bg-indigo-600 shadow-sm"></div>
+                                                                                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 shadow-md border border-white"></div>
+                                                                                </div>
+                                                                            )}
+
+                                                                            <h4 className={`text-xs font-black mb-1 ${isL3Selected ? 'text-indigo-700' : 'text-slate-700'}`}>
+                                                                                {l3Node.name}
+                                                                            </h4>
+
+                                                                            <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isEmpty ? 'bg-slate-100 text-slate-400' : 'bg-slate-100 text-slate-600 border border-slate-200'} text-center leading-tight`}>
+                                                                                {isEmpty ? "Empty" : hasChildren ? `${l3Children.length} Locations\n(Click to Drill)` : `${l3Items.length} Items`}
+                                                                            </span>
+
+                                                                            {isL3Selected && !isEmpty && !hasChildren && (
+                                                                                <div
+                                                                                    className="absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-white border border-slate-200 rounded-xl shadow-xl p-3 z-30 w-48 ring-1 ring-black/5"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                >
+                                                                                    <div className="flex justify-between items-center mb-2 border-b border-slate-100 pb-1">
+                                                                                        <h5 className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Contents</h5>
+                                                                                        {l3Node.markedForDispatch ? (
+                                                                                            <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">Marked</span>
+                                                                                        ) : (
+                                                                                            <button
+                                                                                                onClick={async () => await markPalletForDispatch(l3Node.id)}
+                                                                                                disabled={markingBatch === l3Node.id}
+                                                                                                className="text-[9px] font-bold text-white bg-slate-800 hover:bg-slate-700 px-1.5 py-0.5 rounded transition-colors disabled:opacity-50 flex items-center gap-1"
+                                                                                            >
+                                                                                                {markingBatch === l3Node.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Dispatch Pallet"}
+                                                                                            </button>
                                                                                         )}
                                                                                     </div>
-                                                                                ))}
-                                                                            </div>
+                                                                                    <div className="flex flex-col gap-2">
+                                                                                        {l3Items.map(item => (
+                                                                                            <div key={item.itemCode} className="flex flex-col mb-1 last:mb-0">
+                                                                                                <div className="flex justify-between items-start gap-2">
+                                                                                                    <span className="text-[11px] font-bold text-slate-800 leading-tight">{item.itemName}</span>
+                                                                                                    <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 whitespace-nowrap">
+                                                                                                        {item.totalWeight}{item.uom}
+                                                                                                    </span>
+                                                                                                </div>
+                                                                                                {item.expiryDate && (
+                                                                                                    <span className={`text-[9px] font-medium mt-1 text-slate-500`}>
+                                                                                                        Exp: {item.expiryDate}
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                    )}
-                                                                </div>
-                                                            )
-                                                        })}
-                                                    </div>
+                                                                    )
+                                                                })}
+                                                            </div>
 
-                                                    {/* Direct items in L2 (if any) */}
-                                                    {(l2Node.items || []).length > 0 && (l2Node.children || []).length === 0 && (
-                                                        <div className="mt-4 p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
-                                                            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Items</h4>
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                                                                {l2Node.items.map(item => (
-                                                                    <div key={item.itemCode} className="bg-slate-50 border border-slate-200 rounded p-2 flex justify-between items-start gap-2">
+                                                            {/* Direct items in L2 (if any) */}
+                                                            {(l2Node.items || []).length > 0 && (l2Node.children || []).length === 0 && (
+                                                                <div className="mt-4 p-3 bg-white border border-slate-200 rounded-lg shadow-sm">
+                                                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Items</h4>
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                                                        {l2Node.items.map(item => (
+                                                                            <div key={item.itemCode} className="bg-slate-50 border border-slate-200 rounded p-2 flex justify-between items-start gap-2">
+                                                                                <span className="text-[11px] font-bold text-slate-800 leading-tight">{item.itemName}</span>
+                                                                                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 whitespace-nowrap">
+                                                                                    {item.totalWeight}{item.uom}
+                                                                                </span>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )
+                                                })}
+
+                                                {/* Direct items in L1 (if any) */}
+                                                {(l1Node.items || []).length > 0 && (l1Node.children || []).length === 0 && (
+                                                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                                                        <h3 className="text-sm font-bold text-slate-700 mb-3">Direct Items</h3>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                                            {l1Node.items.map(item => (
+                                                                <div key={item.itemCode} className="bg-white border border-slate-200 rounded-lg p-3">
+                                                                    <div className="flex justify-between items-start gap-2">
                                                                         <span className="text-[11px] font-bold text-slate-800 leading-tight">{item.itemName}</span>
                                                                         <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 whitespace-nowrap">
                                                                             {item.totalWeight}{item.uom}
                                                                         </span>
                                                                     </div>
-                                                                ))}
-                                                            </div>
+                                                                </div>
+                                                            ))}
                                                         </div>
-                                                    )}
-                                                </div>
-                                            )
-                                        })}
-                                        
-                                        {/* Direct items in L1 (if any) */}
-                                        {(l1Node.items || []).length > 0 && (l1Node.children || []).length === 0 && (
-                                            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-                                                <h3 className="text-sm font-bold text-slate-700 mb-3">Direct Items</h3>
-                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                                    {l1Node.items.map(item => (
-                                                        <div key={item.itemCode} className="bg-white border border-slate-200 rounded-lg p-3">
-                                                            <div className="flex justify-between items-start gap-2">
-                                                                <span className="text-[11px] font-bold text-slate-800 leading-tight">{item.itemName}</span>
-                                                                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 whitespace-nowrap">
-                                                                    {item.totalWeight}{item.uom}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )
-                        })()}
-                    </div>
-                    </>
-                )}
+                                        </div>
+                                    )
+                                })()}
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         </div>

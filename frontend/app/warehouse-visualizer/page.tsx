@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 export default function WarehouseVisualizerPage() {
     const router = useRouter();
     const [backendUrl, setBackendUrl] = useState("http://77.42.39.77:8000");
-    const [warehouses, setWarehouses] = useState<{id: string, name: string}[] | null>(null);
+    const [warehouses, setWarehouses] = useState<{ id: string, name: string }[] | null>(null);
     const [racksMap, setRacksMap] = useState<Record<string, any> | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -25,10 +25,10 @@ export default function WarehouseVisualizerPage() {
             fetch(`${backendUrl}/wms/root-warehouses`, { mode: "cors" }),
             fetch(`${backendUrl}/wms/warehouse-layout`, { mode: "cors" })
         ]);
-        
+
         if (!whRes.ok) throw new Error("Failed to fetch root warehouses");
         if (!layoutRes.ok) throw new Error("Failed to fetch warehouse layout data");
-        
+
         const whData = await whRes.json();
         const layoutData = await layoutRes.json();
         return { whData, layoutData };
@@ -51,7 +51,7 @@ export default function WarehouseVisualizerPage() {
                 setLoading(false);
             }
         };
-        
+
         fetchData();
     }, [backendUrl]);
 
@@ -85,9 +85,9 @@ export default function WarehouseVisualizerPage() {
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900 mb-2">Connection Error</h2>
                     <p className="text-slate-600 mb-8">{error || "Unknown error occurred"}</p>
-                    
-                    <button 
-                        onClick={() => router.push("/dashboard")}
+
+                    <button
+                        onClick={() => router.push("/warehouse-visualizer")}
                         className="bg-slate-900 text-white hover:bg-slate-800 px-6 py-2.5 rounded-lg font-bold flex items-center gap-2 transition-colors shadow-sm"
                     >
                         <ArrowLeft className="w-4 h-4" />
